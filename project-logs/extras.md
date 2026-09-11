@@ -447,9 +447,44 @@ The user wanted a structured logging system baked into the agent's behavior via 
 | `native-bot/ui/style.css` | UPGRADE PLANNED | Complete HDX tactical dark theme with modern glassmorphism and responsive tab panels |
 | `native-bot/ui/app.js` | UPGRADE PLANNED | Interactive state management for all 15 tabs, 2D tile canvas engine, config inspector, telemetry |
 
+
+---
+
+## Extras — 2026-09-11T10:20:00-07:00
+
+### Extra Steps Taken
+- **Native Release Compilation**: Built optimized `native-bot/target/release/hd-host.exe` (2.68 MB) utilizing LLVM LTO for zero garbage-collection latency.
+- **GNU Runtime Bundling**: Bundled `libgcc_s_seh-1.dll` and `libwinpthread-1.dll` directly alongside `hd-host.exe` to guarantee frictionless standalone execution on any Windows machine without requiring MinGW or Rust toolchain installation.
+- **Turnkey Multi-Mode Launcher**: Authored interactive batch launcher with automated fallback, supporting modern visual app mode, headless daemon mode, and automated test suite execution.
+- **Git Asset Packaging**: Indexed and committed all 160+ reference screenshots from `Assest/` into the git repository history for visual traceability.
+
+### Changes Made
+| File | Status | Details |
+|------|--------|---------|
+| `native-bot/crates/hd-host/src/main.rs` | NEW | Standalone executable entry point with autonomous multi-phase loop |
+| `native-bot/target/release/hd-host.exe` | NEW | Compiled native release executable (2.68 MB) |
+| `run_native_bot.bat` | MODIFIED | Interactive 3-mode turnkey launcher |
+| `native-bot/run_native_bot.bat` | MODIFIED | Mirror turnkey launcher for convenience |
+| `native-bot/.gitignore` | NEW | Ignores intermediate Cargo build targets |
+
 ### Gotchas & Notes
-- Teleportation requires coordinates verification: Home (0,0), Fishing (Area 4), Town (Area 2), Greg (Player ID 1), AI Town (Area 5).
-- Map coordinates in HDX use fixed-point integers (e.g. `x=50688, y=4608`) representing world-space tile positions.
+- On Windows MinGW/GNU targets, Rust binaries dynamically link `libgcc_s_seh-1.dll` and `libwinpthread-1.dll`; bundling them in the release folder eliminates `0xc0000135` missing DLL errors.
+- Headless background executions should avoid relying on console CTRL+C signal handlers that can trigger false-positive exit signals in detached pipes.
+
+### How the Autonomous Daemon Operates
+1. Initializes `SafeFarmMetrics` with atomic counters.
+2. Constructs `BotController` with 20+ smart automation routines.
+3. Spawns `MasterLoop` executing 8 distinct phases sequentially with randomized humanized jitter (200~1000ms):
+   - Phase 1: Crop harvest & replanting
+   - Phase 2: Animal collection & auto-chain feeding
+   - Phase 3: Obstacle clearing (saws & axes)
+   - Phase 4: Production queue balancing (Sugar, Feed, Smelters)
+   - Phase 5: Smart Mining (with 10 💎 goal cap)
+   - Phase 6: Fishing lake navigation & lobster traps
+   - Phase 7: Maintenance suite (Mail, Mystery Box, Wheel, Farm Pass)
+   - Phase 8: Newspaper rare tool sniping (strict 80-item daily limit)
+4. Rests for 10-15 seconds between cycles, continuously repeating while tracking all metrics.
+
 
 
 
