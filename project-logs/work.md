@@ -281,3 +281,30 @@ Users now have both a command-line ID finder (`python game_ids.py <name>`) and a
 
 ### How It Was Approached
 Cataloged the Titan engine class IDs and individual row indices into structured Python dictionaries with multi-field search logic, and integrated a live Treeview table into the Tkinter GUI so users can look up and dispatch IDs with a single click.
+
+---
+
+## Session — 2026-09-10T23:55:00-07:00
+
+### What Was Done
+- Created [`ALL_IDS_AND_COMMANDS_GUIDE.txt`](file:///c:/Users/Admin/Desktop/inxernal-main/ALL_IDS_AND_COMMANDS_GUIDE.txt): a plain-language, comprehensive reference guide detailing:
+  - 1-Click GUI Quick Start & Stop instructions.
+  - Plain English explanation of Titan Global IDs and how the formula works.
+  - Complete tables of all Crops, Feeds, Machines, Goods, Tools, and Animals with their exact IDs.
+  - Real-world `exec_cmd` copy-paste examples.
+  - Tutorial on capturing new IDs with `capture 60`.
+  - Step-by-step instructions for submitting screenshots to add custom features.
+- Staged and committed [`ALL_IDS_AND_COMMANDS_GUIDE.txt`](file:///c:/Users/Admin/Desktop/inxernal-main/ALL_IDS_AND_COMMANDS_GUIDE.txt) into the local Git repository on `main`.
+- Authenticated and pushed new commit `1097484` to both remote GitHub repositories:
+  - Public Repository: `https://github.com/AshrafMorningstar/hayday-bot.git`
+  - Private Repository: `https://github.com/AshrafMorningstar/hayday-core-private.git`
+- Verified working tree is clean and up to date on both remotes.
+
+### Current Status
+The guide is saved locally as `ALL_IDS_AND_COMMANDS_GUIDE.txt` and uploaded live to both GitHub repositories.
+
+### What Is Planned Next
+- Present the guide and repository links to the user.
+
+### How It Was Approached
+Authored the guide using simple, friendly, non-technical language with clear section headings, ASCII formatting tables, and copy-paste command blocks so anyone can understand it immediately. Used GitHub CLI credential helper to securely push the commit to both public and private repositories simultaneously.

@@ -311,4 +311,35 @@ The user wanted a structured logging system baked into the agent's behavior via 
 4. Built the GUI search interface in Tkinter.
 5. Tested end-to-end lookup in both CLI and GUI.
 
+---
+
+## Extras — 2026-09-10T23:55:00-07:00
+
+### Extra Steps Taken
+- Authored a completely beginner-friendly text manual `ALL_IDS_AND_COMMANDS_GUIDE.txt` spanning 378 lines:
+  - Step 1: 1-Click GUI launch and standby instructions.
+  - Step 2: Emergency Stop and command halting.
+  - Step 3: Simple mathematical explanation of Titan Global IDs.
+  - Step 4: Comprehensive tables of Crops, Feeds, Machines, Goods, Tools, and Animals.
+  - Step 5: Real-world `exec_cmd` examples for immediate copy-pasting.
+  - Step 6: Step-by-step tutorial on discovering new IDs with `capture 60` and `game_ids.py`.
+  - Step 7: Screenshot submission guide for feature requests.
+- Integrated GitHub CLI credential helper configuration (`gh auth setup-git`) with environment path adjustments so git pushes execute smoothly and silently.
+- Pushed the new guide and latest changes to both remote repositories on GitHub.
+
+### Changes Made
+| File | Status | Details |
+|------|--------|---------|
+| `ALL_IDS_AND_COMMANDS_GUIDE.txt` | NEW | 378 lines plain-language universal manual for IDs, commands, and GUI operations |
+| Remote Repositories | UPDATED | Pushed commit `1097484` to `AshrafMorningstar/hayday-bot` and `AshrafMorningstar/hayday-core-private` |
+
+### Gotchas & Notes
+- On Windows systems where `git.exe` is installed in `C:\Program Files\Git\cmd\` but not present in the current process's `$env:PATH`, `gh auth setup-git` fails with "unable to find git executable". Prepending the Git installation path to `$env:PATH` in the command session resolves this seamlessly.
+
+### How It Was Built
+1. Formatted all complex reverse engineering concepts into plain, everyday English.
+2. Created visual ASCII tables for all items and their ID numbers.
+3. Committed the file to the local git repository.
+4. Synchronized with both remote GitHub repositories using Git and GitHub CLI authentication.
+
 

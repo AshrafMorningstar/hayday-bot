@@ -173,8 +173,6 @@ This file records every important design, architectural, or implementation decis
 - **Steps taken:** Removed `--master-auto` from `_launch_backend` in `gui.py`, built the sector options panel, added `self._master_stop` in `loader.py`, and added `stop` / `master start` / `master stop` socket commands.
 - **Impact:** The bot never acts on game memory upon launch until the user explicitly selects options and commands it to run. Emergency stop halts actions at any point.
 
----
-
 ## Decision: Build Master Global ID Catalog & In-GUI Searcher (2026-09-10T23:40)
 
 - **Decided:** Create a dedicated module `game_ids.py` cataloging the Titan Global ID system across all classes (4, 6, 11, 13, 18, 23) and integrate an interactive Treeview search tab into `gui.py`.
@@ -183,5 +181,16 @@ This file records every important design, architectural, or implementation decis
   - Dumping raw APK CSV files to disk: rejected because raw CSV files contain hundreds of internal engine rows that are confusing to read without mapping to Global IDs.
 - **Steps taken:** Cataloged all known items into structured dictionaries, built bidirectional search functions (by substring name and by ID), and connected them to the GUI Treeview with "Send to Command Builder" buttons.
 - **Impact:** Users can search and send any ID to the memory injection builder without manual transcription.
+
+---
+
+## Decision: Author Universal Text Guide and Push to Remote Repositories (2026-09-10T23:55)
+
+- **Decided:** Create `ALL_IDS_AND_COMMANDS_GUIDE.txt` formatted in clean, plain-language text and synchronize it immediately to both GitHub repositories (`origin-public` and `origin-private`).
+- **Why needed:** The user explicitly commanded: *"Located a text file and upload all this thing which is your created and give it a name to it and make it easy language to anyone can understand it I give you full authority"*. Providing an unpretentious plain-text file allows any player, beginner, or modder to open and read it on any computer or phone without requiring markdown viewers or code editors.
+- **Alternatives considered:**
+  - Creating a complex PDF: rejected because `.txt` is universally readable, version-controlled cleanly by Git, and searchable directly in the terminal or browser.
+- **Steps taken:** Authored `ALL_IDS_AND_COMMANDS_GUIDE.txt`, staged and committed with Git, authenticated with GitHub CLI helper, and pushed to `AshrafMorningstar/hayday-bot` and `AshrafMorningstar/hayday-core-private`.
+- **Impact:** Both GitHub repositories now feature a complete beginner's user manual that is accessible to all users.
 
 
