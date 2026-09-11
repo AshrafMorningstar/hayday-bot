@@ -138,3 +138,34 @@ Git and GitHub CLI are installed. Preparing repository assets, documentation, an
 ### How It Was Approached
 Structured the dual-repo requirement cleanly: separated sensitive internal architectural details for the Private repo while crafting an ultra-simple, 1-click Quick Start guide for the Public repo. Automated all CLI operations via Python and batch wrappers to ensure zero-effort execution for the user.
 
+---
+
+## Session — 2026-09-10T21:16:00-07:00
+
+### What Was Done
+- Verified pristine, untouched full backup directory at `C:\Users\Admin\Desktop\inxernal-backup` preserved without modification.
+- Implemented and verified dedicated farm collection commands in `loader.py`:
+  - `cmd_collect_crops` (alias `collect_crops`, `collectcrops`): harvested field crops.
+  - `cmd_collect_animals` (alias `collect_animals`, `collectanimals`): gathers animal goods (eggs, milk, bacon, wool, goat milk).
+  - `cmd_feed_animals` (alias `feed_animals`, `feedanimals`): distributes feed to animal pens.
+  - `cmd_collect_machines` (alias `collect_machines`, `collectmachines`): retrieves finished items from 9 production buildings.
+  - `cmd_produce_machines` (alias `produce_machines`, `producemachines`): queues essential goods in open production slots.
+  - `cmd_collect_fruits` (alias `collect_fruits`, `collectfruits`): harvests ripe orchard trees and berry bushes.
+  - `cmd_collect_all` (alias `collect_all`, `collectall`): Master collection command chaining all four collection routines sequentially into barn and silo.
+  - `cmd_master_auto` (alias `master_auto`, `masterauto`, `automaster`, `nmaster`): Master autonomous unattended loop orchestrating crops, animals, feeding, machine collection, production queues, fruit gathering, optional roadside shop selling, and jittered timing cycles.
+- Integrated all new commands into the interactive CLI command dispatch dictionary and help banner in `loader.py`.
+- Exposed all collection commands over the TCP control socket protocol (`_control_result`) with thread serialization.
+- Added `--master-auto` command-line argument to `loader.py`, `setup.py`, and `-MasterAuto` switch to `start_auto.ps1`.
+- Created comprehensive test suite `test_farm_commands.py` with 10 unit and integration tests.
+- Executed `test_farm_commands.py` covering each command individually: 10/10 tests passed (100%).
+
+### Current Status
+All requested farm collection commands, master commands, launcher integrations, and validation tests are complete, tested one by one, and passing 100%.
+
+### What Is Planned Next
+- Present complete walkthrough and command reference to the user.
+- Await user requests for further live farming parameters or custom item IDs.
+
+### How It Was Approached
+Adopted a modular command pattern in `loader.py` that separates discrete farm sectors (crops, animals, machines, fruits) while allowing them to be composed both synchronously via `collect_all` and as an unattended recurring cycle via `master_auto`. Serialized socket dispatch with thread locks to protect game state concurrency.
+

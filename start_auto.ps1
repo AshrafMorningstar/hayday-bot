@@ -1,10 +1,11 @@
-﻿# start_auto.ps1 - inxernal auto-launch (PowerShell)
+# start_auto.ps1 - inxernal auto-launch (PowerShell)
 # Right-click -> "Run with PowerShell"  or  .\start_auto.ps1
 # Optional args: -Wait 90 -Crop 400002 -NoLaunch
 
 param(
-    [int]$Wait    = 130,
-    [int]$Crop    = 400001,
+    [int]$Wait        = 130,
+    [int]$Crop        = 400001,
+    [switch]$MasterAuto,
     [switch]$NoLaunch
 )
 
@@ -57,6 +58,7 @@ Write-Host "  [+] Python: $py" -ForegroundColor Green
 Write-Host ""
 
 $setupArgs = @("setup.py", "--wait", $Wait, "--crop", $Crop)
+if ($MasterAuto) { $setupArgs += "--master-auto" }
 if ($NoLaunch) { $setupArgs += "--no-launch" }
 
 & $py @setupArgs

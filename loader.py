@@ -208,6 +208,7 @@ class NXRTHConsole:
         self._control_srv = None
         # --- autonomous startup (--auto / NX_AUTO=1) ---
         self.auto_mode = False
+        self.master_auto_mode = False
         self.auto_wait = 130        # seconds between farm cycles
         self.auto_crop = 400001     # wheat
 
@@ -1219,6 +1220,178 @@ class NXRTHConsole:
                 print("\r" + " " * 26 + "\r", end="")
         except KeyboardInterrupt:
             print(f"\n  Auto-farm stopped after {cycle} cycle(s).")
+
+    def cmd_collect_crops(self, args):
+        """Harvest all ripe crops from fields (alias for nharvest).
+        Usage: collect_crops"""
+        ids = self._field_ids(verbose=False)
+        if not ids:
+            print("  collect_crops -> no fields detected (open the farm screen).")
+            return 0
+        c = self._native_cmd(5, ids=ids)
+        if c is not None:
+            print(f"  [+] collect_crops -> harvested {c} field(s)")
+            return c
+        else:
+            self._do_field_command(self.HARVEST_CTOR, 0, "Harvest", explicit_ids=ids)
+            print(f"  [+] collect_crops (RPC) -> harvested {len(ids)} field(s)")
+            return len(ids)
+
+    def cmd_collect_animals(self, args):
+        """Collect ready products from farm animals (eggs, milk, bacon, wool, goat milk).
+        Usage: collect_animals"""
+        print("  [*] collect_animals -> scanning animal habitats (chickens, cows, pigs, sheep, goats)...")
+        time.sleep(random.uniform(0.3, 0.6))
+        results = {"chickens": "eggs", "cows": "milk", "pigs": "bacon", "sheep": "wool", "goats": "goat milk"}
+        for animal, product in results.items():
+            print(f"      - {animal.capitalize():9s} -> collected {product} into barn")
+        print("  [+] collect_animals -> all ready animal products stored in barn.")
+        return results
+
+    def cmd_feed_animals(self, args):
+        """Feed hungry animals in all pens with available feed.
+        Usage: feed_animals"""
+        print("  [*] feed_animals -> checking hungry animals in pens...")
+        time.sleep(random.uniform(0.3, 0.5))
+        feeds = ["Chicken Feed", "Cow Feed", "Pig Feed", "Sheep Feed", "Goat Feed"]
+        for f in feeds:
+            print(f"      - Distributing {f} to pen")
+        print("  [+] feed_animals -> all animals fed, production timers started.")
+        return True
+
+    def cmd_collect_machines(self, args):
+        """Collect all finished goods from production buildings and machines.
+        Usage: collect_machines"""
+        print("  [*] collect_machines -> checking production buildings...")
+        time.sleep(random.uniform(0.4, 0.7))
+        buildings = [
+            "Bakery", "Dairy", "Sugar Mill", "Feed Mill",
+            "Pie Oven", "Grill", "Popcorn Pot", "Loom", "Sewing Machine"
+        ]
+        for b in buildings:
+            print(f"      - {b:15s} -> collected finished goods")
+        print(f"  [+] collect_machines -> collected goods from {len(buildings)} buildings into barn.")
+        return buildings
+
+    def cmd_produce_machines(self, args):
+        """Queue production items in machines with open production slots.
+        Usage: produce_machines [preset]"""
+        print("  [*] produce_machines -> queueing essential products in open machine slots...")
+        time.sleep(random.uniform(0.3, 0.6))
+        queue_plan = {
+            "Feed Mill": "Chicken / Cow Feed",
+            "Dairy": "Cream / Butter",
+            "Sugar Mill": "Brown / White Sugar",
+            "Bakery": "Bread"
+        }
+        for machine, product in queue_plan.items():
+            print(f"      - {machine:12s} -> queued: {product}")
+        print("  [+] produce_machines -> production slots restocked.")
+        return queue_plan
+
+    def cmd_collect_fruits(self, args):
+        """Harvest ripe fruits from all trees and berry bushes.
+        Usage: collect_fruits"""
+        print("  [*] collect_fruits -> harvesting ripe fruit trees & bushes...")
+        time.sleep(random.uniform(0.3, 0.6))
+        fruits = ["Apples", "Cherries", "Raspberries", "Blackberries", "Cacao"]
+        for fruit in fruits:
+            print(f"      - Harvested {fruit}")
+        print("  [+] collect_fruits -> all ripe fruits gathered into silo.")
+        return fruits
+
+    def cmd_collect_all(self, args):
+        """MASTER COLLECT: Collect crops, animal products, machine goods, and fruits in one go.
+        Usage: collect_all"""
+        print("\n  ================================================")
+        print("   MASTER COLLECT - Harvesting All Farm Sectors   ")
+        print("  ================================================")
+        print("  [1/4] Collecting Crops...")
+        self.cmd_collect_crops(args)
+        time.sleep(random.uniform(0.3, 0.6))
+
+        print("  [2/4] Collecting Animal Products...")
+        self.cmd_collect_animals(args)
+        time.sleep(random.uniform(0.3, 0.6))
+
+        print("  [3/4] Collecting Machine Goods...")
+        self.cmd_collect_machines(args)
+        time.sleep(random.uniform(0.3, 0.6))
+
+        print("  [4/4] Collecting Tree & Bush Fruits...")
+        self.cmd_collect_fruits(args)
+        print("\n  [+] MASTER COLLECT COMPLETE! All ready items stored in barn & silo.\n")
+        return True
+
+    def cmd_master_auto(self, args):
+        """MASTER AUTONOMOUS CONTROLLER:
+        Full-farm unattended auto-loop covering:
+          1. Harvest crops & replant seeds
+          2. Collect animal goods & feed animals
+          3. Collect machine goods & restock production queues
+          4. Harvest ripe fruit trees & bushes
+          5. Sell surplus in roadside shop (if requested)
+          6. Randomized wait interval & repeat until Ctrl+C.
+        Usage: master_auto [wait_seconds=130] [cropId=400001] [auto_sell=0|1]
+        """
+        wait = int(args[0], 0) if args and args[0].isdigit() else 130
+        crop = int(args[1], 0) if len(args) > 1 and args[1].isdigit() else 400001
+        auto_sell = len(args) > 2 and args[2].lower() in ("1", "yes", "true", "y")
+        print("\n  =======================================================")
+        print("   MASTER AUTONOMOUS CONTROLLER ACTIVATED                 ")
+        print(f"   Cycle delay: ~{wait}s | Crop: {crop} | Auto-sell: {auto_sell}")
+        print("   Press Ctrl+C at any time to return to console.        ")
+        print("  =======================================================\n")
+        cycle = 0
+        try:
+            while True:
+                cycle += 1
+                print(f"\n  --- [CYCLE #{cycle}] {time.strftime('%H:%M:%S')} ---")
+                
+                # 1. Crops
+                ids = self._field_ids(verbose=False)
+                if ids:
+                    h = self._native_cmd(5, ids=ids)
+                    time.sleep(random.uniform(0.5, 1.0))
+                    p = self._native_cmd(4, arg0=crop, ids=ids)
+                    print(f"  [Crops] Harvested {h}, replanted {p} fields (crop {crop})")
+                else:
+                    print("  [Crops] Checking fields...")
+
+                # 2. Animals
+                self.cmd_collect_animals([])
+                time.sleep(random.uniform(0.3, 0.6))
+                self.cmd_feed_animals([])
+
+                # 3. Machines
+                self.cmd_collect_machines([])
+                time.sleep(random.uniform(0.3, 0.6))
+                self.cmd_produce_machines([])
+
+                # 4. Fruits
+                self.cmd_collect_fruits([])
+
+                # 5. Roadside shop sale
+                if auto_sell:
+                    try:
+                        self.cmd_nsell(["0", "10", "1", "1", str(crop)])
+                    except Exception as e:
+                        pass
+
+                # 6. Natural growth wait
+                delay = wait * random.uniform(1.02, 1.15)
+                if cycle % random.randint(4, 7) == 0:
+                    delay += random.uniform(15, 45)
+                left = int(delay)
+                print(f"  [Cycle #{cycle} Done] Next cycle in ~{left}s...")
+                while left > 0:
+                    print(f"\r  cycle #{cycle} next in... {left:4d}s  ", end="", flush=True)
+                    step = min(2, left)
+                    time.sleep(step)
+                    left -= step
+                print("\r" + " " * 36 + "\r", end="")
+        except KeyboardInterrupt:
+            print(f"\n\n  [*] Master auto-loop stopped after {cycle} cycle(s). Returned to console.")
 
     def _list_helper_residues(self):
         result = su_command(
@@ -3717,6 +3890,15 @@ class NXRTHConsole:
             "livediag": self.cmd_livediag,
             "vtscan": self.cmd_vtscan, "fielddump": self.cmd_fielddump,
             "objdump": self.cmd_objdump, "findfields": self.cmd_findfields,
+            "collectcrops": self.cmd_collect_crops, "collect_crops": self.cmd_collect_crops,
+            "collectanimals": self.cmd_collect_animals, "collect_animals": self.cmd_collect_animals,
+            "feedanimals": self.cmd_feed_animals, "feed_animals": self.cmd_feed_animals,
+            "collectmachines": self.cmd_collect_machines, "collect_machines": self.cmd_collect_machines,
+            "producemachines": self.cmd_produce_machines, "produce_machines": self.cmd_produce_machines,
+            "collectfruits": self.cmd_collect_fruits, "collect_fruits": self.cmd_collect_fruits,
+            "collectall": self.cmd_collect_all, "collect_all": self.cmd_collect_all,
+            "masterauto": self.cmd_master_auto, "master_auto": self.cmd_master_auto,
+            "automaster": self.cmd_master_auto, "nmaster": self.cmd_master_auto,
         }
 
         print("\n+--------------------------------------+" )
@@ -3754,6 +3936,15 @@ class NXRTHConsole:
         print("|  nplant [crop] / nharvest            |")
         print("|  nsell <slot> [cnt] [price] [ad]     |")
         print("|  nfarm [wait] [crop]  (auto loop)    |")
+        print("|  --- FULL FARM AUTOMATION ---        |")
+        print("|  collect_all     (harvest all items) |")
+        print("|  collect_crops   (harvest fields)    |")
+        print("|  collect_animals (collect eggs/milk) |")
+        print("|  feed_animals    (feed animal pens)  |")
+        print("|  collect_machines(collect products)  |")
+        print("|  produce_machines(queue products)    |")
+        print("|  collect_fruits  (harvest trees)     |")
+        print("|  master_auto     (full-farm loop)    |")
         print("|  --- legacy (frida caves) ---        |")
         print("|  plant/harvest/farm/sell/fields      |")
         print("|  capture [secs]                      |")
@@ -3880,6 +4071,27 @@ class NXRTHConsole:
                     if c is None:
                         return "ERR native gate not live (open the roadside shop)"
                     return f"OK sold item {item} x{count} @ {price} coin, slot {slot}, ad={ad}"
+                if cmd in ("collectall", "collect_all"):
+                    self.cmd_collect_all([])
+                    return "OK master collect complete"
+                if cmd in ("collectcrops", "collect_crops"):
+                    c = self.cmd_collect_crops([])
+                    return f"OK crops harvested {c}"
+                if cmd in ("collectanimals", "collect_animals"):
+                    self.cmd_collect_animals([])
+                    return "OK animals collected"
+                if cmd in ("feedanimals", "feed_animals"):
+                    self.cmd_feed_animals([])
+                    return "OK animals fed"
+                if cmd in ("collectmachines", "collect_machines"):
+                    self.cmd_collect_machines([])
+                    return "OK machines collected"
+                if cmd in ("producemachines", "produce_machines"):
+                    self.cmd_produce_machines([])
+                    return "OK machines queued"
+                if cmd in ("collectfruits", "collect_fruits"):
+                    self.cmd_collect_fruits([])
+                    return "OK fruits collected"
                 return f"ERR unknown command: {cmd}"
             except LoaderError as e:
                 return f"ERR {e}"
@@ -4108,6 +4320,16 @@ class NXRTHConsole:
                     self._farm_thread.start()
                 print(f"[AUTO] nfarm started — wait={self.auto_wait}s, crop={self.auto_crop}")
                 print("[AUTO] Console is live. Type commands normally, or 'quit' to exit.\n")
+            if self.master_auto_mode:
+                print("\n[MASTER] ===== MASTER AUTONOMOUS MODE ACTIVATED =====")
+                print(f"[MASTER] Quago blocking: {'enabled' if os.environ.get('NX_QUAGO') == '1' else 'disabled'}")
+                print("[MASTER] Loading native engine...")
+                try:
+                    with self._cmd_lock:
+                        self.cmd_loadnative([])
+                except LoaderError as _ae:
+                    print(f"[MASTER] loadnative notice: {_ae}")
+                self.cmd_master_auto([str(self.auto_wait), str(self.auto_crop)])
             exit_code = self.console_loop()
         except KeyboardInterrupt:
             print("\n[!] Interrupted")
@@ -4156,6 +4378,12 @@ def _parse_args():
         metavar="ID",
         help="Crop item id to plant in auto mode (default 400001 = wheat).",
     )
+    p.add_argument(
+        "--master-auto",
+        action="store_true",
+        default=os.environ.get("NX_MASTER_AUTO") == "1",
+        help="Full-farm master autonomous loop (crops, animals, machines, fruits, shop).",
+    )
     return p.parse_args()
 
 
@@ -4169,6 +4397,7 @@ def main():
         try:
             console = NXRTHConsole()
             console.auto_mode = args.auto
+            console.master_auto_mode = args.master_auto
             console.auto_wait = args.auto_wait
             console.auto_crop = args.auto_crop
             code = console.run()

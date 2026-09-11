@@ -187,8 +187,7 @@ def setup_and_push_private(git_bin, gh_bin, repo_root, username, repo_name):
         run_cmd([
             gh_bin, "repo", "create", repo_name,
             "--private",
-            f"--description=inxernal - Core Internal Automation Suite (Private)",
-            "--confirm"
+            f"--description=inxernal - Core Internal Automation Suite, C++ Native Hook Engine & Reverse Engineering Harness (Private)"
         ], cwd=repo_root)
     else:
         log_info(f"Repository {full_name} already exists on GitHub.")
@@ -220,8 +219,7 @@ def setup_and_push_public(git_bin, gh_bin, repo_root, username, repo_name):
         run_cmd([
             gh_bin, "repo", "create", repo_name,
             "--public",
-            f"--description=inxernal - Autonomous Hay Day Automation for LDPlayer 9",
-            "--confirm"
+            f"--description=🌾 #1 Free Hay Day Bot & Auto-Farming Tool for LDPlayer 9. Fully automatic wheat farming, harvesting, planting, roadside shop selling, Promon SHIELD bypass, and Quago anti-cheat blocker. Zero setup required!"
         ], cwd=repo_root)
     else:
         log_info(f"Repository {full_name} already exists on GitHub.")
@@ -239,15 +237,32 @@ def setup_and_push_public(git_bin, gh_bin, repo_root, username, repo_name):
 
     log_info(f"Pushing main branch to {remote_name} ({remote_url})...")
     run_cmd([git_bin, "push", "-u", remote_name, "main", "--force"], cwd=repo_root)
+    
+    # Add SEO topics
+    log_info("Setting repository topics for search engine and GitHub discovery...")
+    topics = [
+        "hayday", "hayday-bot", "hay-day", "hay-day-bot", "supercell",
+        "game-bot", "auto-farm", "ldplayer", "frida", "android-bot",
+        "automation", "python", "bot", "reverse-engineering"
+    ]
+    topic_args = []
+    for t in topics:
+        topic_args.extend(["--add-topic", t])
+    try:
+        run_cmd([gh_bin, "repo", "edit", full_name] + topic_args, check=False)
+    except Exception:
+        pass
+
     log_success(f"Public repository published: https://github.com/{full_name}")
     return f"https://github.com/{full_name}"
 
 def main():
     parser = argparse.ArgumentParser(description="Automated dual GitHub repository publisher for inxernal.")
     parser.add_argument("--token", help="GitHub Personal Access Token (optional)")
-    parser.add_argument("--private-name", default="inxernal-core", help="Private repo name (default: inxernal-core)")
-    parser.add_argument("--public-name", default="inxernal", help="Public repo name (default: inxernal)")
+    parser.add_argument("--private-name", default="hayday-core-private", help="Private repo name (default: hayday-core-private)")
+    parser.add_argument("--public-name", default="hayday-bot", help="Public repo name (default: hayday-bot)")
     args = parser.parse_args()
+
 
     repo_root = Path(__file__).resolve().parent
 

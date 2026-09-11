@@ -206,6 +206,7 @@ def parse_args():
     p.add_argument("--no-launch", action="store_true", help="Checks only, do not launch.")
     p.add_argument("--wait",  type=int, default=130,    help="Farm cycle wait seconds (default 130).")
     p.add_argument("--crop",  type=int, default=400001, help="Crop id (default 400001 = wheat).")
+    p.add_argument("--master-auto", action="store_true", help="Launch directly into Master Autonomous mode.")
     return p.parse_args()
 
 
@@ -337,14 +338,15 @@ def main():
         print("  --no-launch: not starting loader.\n")
         return 0
 
+    launch_mode = "--master-auto" if args.master_auto else "--auto"
     print(f"\n" + "="*54)
-    print(f"  Launching loader.py --auto  (wait={args.wait}s, crop={args.crop})")
+    print(f"  Launching loader.py {launch_mode}  (wait={args.wait}s, crop={args.crop})")
     print("="*54 + "\n")
     time.sleep(1)
 
     cmd = [
         python_exe, str(LOADER),
-        "--auto",
+        launch_mode,
         "--auto-wait", str(args.wait),
         "--auto-crop",  str(args.crop),
     ]

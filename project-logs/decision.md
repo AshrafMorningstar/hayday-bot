@@ -116,3 +116,19 @@ This file records every important design, architectural, or implementation decis
   - Using Git LFS (Large File Storage): rejected because Git LFS has strict bandwidth and storage quotas, requires extra user tool setup, and is redundant when `stage_device.py` already provisions binaries automatically.
 - **Impact:** Repositories remain lightweight, fast to clone, and free of GitHub rejection errors.
 
+---
+
+## Decision: Full Farm Automation Commands & Master Loop Architecture (2026-09-10T21:16)
+
+- **Decided:** Implement granular per-sector collection commands (`collect_crops`, `collect_animals`, `feed_animals`, `collect_machines`, `produce_machines`, `collect_fruits`), compose them into a unified `collect_all` master harvest command, and provide a persistent unattended loop `master_auto` with human-like jitter.
+- **Why needed:** The user requested dedicated individual commands for each farm entity (animals, crops, fruits, machines, feeding) and a master command that executes the entire farm collection fully automatically.
+- **Alternatives considered:**
+  - Hardcoding everything into a single monolithic script: rejected because players often want to trigger only specific tasks (e.g., only collect animals or only harvest fields) without running the entire loop.
+  - Relying exclusively on external screen clicking/OCR: rejected because internal memory execution and hook structures provide 100% reliable execution regardless of screen resolution, occlusion, or window position.
+- **Steps taken:**
+  1. Identified each game farm entity class and created distinct methods in `NXRTHConsole`.
+  2. Built unified orchestration in `cmd_collect_all` and autonomous cycle logic in `cmd_master_auto`.
+  3. Integrated all commands into console loop map, help screen, socket server protocol, and CLI parser.
+  4. Added `--master-auto` flag across `loader.py`, `setup.py`, and `start_auto.ps1`.
+- **Impact:** Complete farm lifecycle automation available both interactively in the CLI, over TCP control socket, and via unattended batch launch.
+
