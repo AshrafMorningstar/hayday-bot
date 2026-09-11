@@ -165,6 +165,8 @@ class HayDayBotGUI:
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 10))
 
         self.tab_dashboard = tk.Frame(self.notebook, bg=self.bg_dark)
+        self.tab_shop = tk.Frame(self.notebook, bg=self.bg_dark)
+        self.tab_teleport = tk.Frame(self.notebook, bg=self.bg_dark)
         self.tab_builder = tk.Frame(self.notebook, bg=self.bg_dark)
         self.tab_id_finder = tk.Frame(self.notebook, bg=self.bg_dark)
         self.tab_logs = tk.Frame(self.notebook, bg=self.bg_dark)
@@ -172,6 +174,8 @@ class HayDayBotGUI:
         self.tab_help = tk.Frame(self.notebook, bg=self.bg_dark)
 
         self.notebook.add(self.tab_dashboard, text="  🚜 Farm Dashboard  ")
+        self.notebook.add(self.tab_shop, text="  🏪 Roadside Shop & Auto-Sell  ")
+        self.notebook.add(self.tab_teleport, text="  🚀 Screen Teleport  ")
         self.notebook.add(self.tab_builder, text="  ⚡ Custom Command Builder  ")
         self.notebook.add(self.tab_id_finder, text="  🔍 ID Code Finder  ")
         self.notebook.add(self.tab_logs, text="  📋 Live Logs & Terminal  ")
@@ -179,6 +183,8 @@ class HayDayBotGUI:
         self.notebook.add(self.tab_help, text="  📖 Command Guide  ")
 
         self._init_dashboard_tab()
+        self._init_shop_tab()
+        self._init_teleport_tab()
         self._init_builder_tab()
         self._init_id_finder_tab()
         self._init_logs_tab()
@@ -367,6 +373,195 @@ class HayDayBotGUI:
         self.btn_master.config(text="▶ START AUTOMATION LOOP", bg=self.accent_green)
         self.status_text.config(text="All commands and automation loops STOPPED.")
         self.log(f"[✓] Stopped: {res}")
+
+    def _init_shop_tab(self):
+        """Roadside Shop manager: auto-sell with anti-ban pricing and coin collection."""
+        container = tk.Frame(self.tab_shop, bg=self.bg_dark)
+        container.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        # Card 1: Selling Controls
+        sell_card = tk.Frame(container, bg=self.bg_card, padx=16, pady=14, relief="flat",
+                             highlightbackground=self.accent_yellow, highlightthickness=1)
+        sell_card.pack(fill=tk.X, pady=(0, 10))
+
+        tk.Label(sell_card, text="🏪 ROADSIDE SHOP AUTO-SELLER & PRICING ENGINE", font=("Segoe UI", 12, "bold"),
+                 fg=self.accent_yellow, bg=self.bg_card).pack(anchor="w", pady=(0, 2))
+        tk.Label(sell_card, text="List items for sale across shop crates with anti-ban humanized pricing and automated ad management.",
+                 font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 10))
+
+        # Row 1: Item & Slot
+        r1 = tk.Frame(sell_card, bg=self.bg_card)
+        r1.pack(fill=tk.X, pady=4)
+
+        tk.Label(r1, text="Item to Sell:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=14, anchor="w").pack(side=tk.LEFT)
+        self.shop_item_var = tk.StringVar(value="400001 (Wheat)")
+        items_list = [
+            "400001 (Wheat)", "400002 (Corn)", "400003 (Soybean)", "400004 (Sugarcane)",
+            "400005 (Carrot)", "400006 (Indigo)", "400007 (Pumpkin)", "1100015 (Bread)",
+            "1100000 (Cream)", "1100001 (Butter)", "1100002 (Cheese)", "1100013 (Brown Sugar)",
+            "1800000 (Saw)", "1800001 (Axe)", "1800004 (Bolt)", "1800005 (Plank)", "1800006 (Duct Tape)"
+        ]
+        combo_item = ttk.Combobox(r1, textvariable=self.shop_item_var, values=items_list, state="readonly", width=22)
+        combo_item.pack(side=tk.LEFT, padx=(0, 16))
+
+        tk.Label(r1, text="Target Slot:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=12, anchor="w").pack(side=tk.LEFT)
+        self.shop_slot_var = tk.StringVar(value="All Available Slots")
+        slots_list = ["All Available Slots", "Slot #0", "Slot #1", "Slot #2", "Slot #3", "Slot #4", "Slot #5", "Slot #6", "Slot #7"]
+        combo_slot = ttk.Combobox(r1, textvariable=self.shop_slot_var, values=slots_list, state="readonly", width=18)
+        combo_slot.pack(side=tk.LEFT)
+
+        # Row 2: Quantity & Price Mode
+        r2 = tk.Frame(sell_card, bg=self.bg_card)
+        r2.pack(fill=tk.X, pady=4)
+
+        tk.Label(r2, text="Quantity / Slot:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=14, anchor="w").pack(side=tk.LEFT)
+        self.shop_count_var = tk.StringVar(value="10")
+        combo_count = ttk.Combobox(r2, textvariable=self.shop_count_var, values=["10 (Max Stack)", "5", "2", "1"], state="readonly", width=22)
+        combo_count.pack(side=tk.LEFT, padx=(0, 16))
+
+        tk.Label(r2, text="Price Setting:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=12, anchor="w").pack(side=tk.LEFT)
+        self.shop_price_mode_var = tk.StringVar(value="Anti-Ban Max (Human - Safe)")
+        price_modes = ["Anti-Ban Max (Human - Safe)", "Absolute Max Price", "Medium (~50% Max)", "Low (1 Coin Quick Dump)", "Custom Price"]
+        combo_price = ttk.Combobox(r2, textvariable=self.shop_price_mode_var, values=price_modes, state="readonly", width=24)
+        combo_price.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Row 3: Custom Price Entry & Ad Option
+        r3 = tk.Frame(sell_card, bg=self.bg_card)
+        r3.pack(fill=tk.X, pady=4)
+
+        tk.Label(r3, text="Custom Coins:", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card, width=14, anchor="w").pack(side=tk.LEFT)
+        self.entry_custom_price = tk.Entry(r3, width=8, font=("Consolas", 10), bg=self.bg_dark, fg="#ffffff", insertbackground="#ffffff", relief="flat")
+        self.entry_custom_price.pack(side=tk.LEFT, padx=(0, 16), ipady=2)
+        self.entry_custom_price.insert(0, "36")
+
+        tk.Label(r3, text="Newspaper Ad:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=12, anchor="w").pack(side=tk.LEFT)
+        self.shop_ad_var = tk.StringVar(value="Auto (Respect 5-min Cooldown)")
+        ad_choices = ["Auto (Respect 5-min Cooldown)", "Skip Ad (0)", "Force Ad (1)"]
+        combo_ad = ttk.Combobox(r3, textvariable=self.shop_ad_var, values=ad_choices, state="readonly", width=24)
+        combo_ad.pack(side=tk.LEFT)
+
+        # Action Buttons Row
+        btn_row = tk.Frame(sell_card, bg=self.bg_card)
+        btn_row.pack(fill=tk.X, pady=(12, 4))
+
+        btn_sell = tk.Button(btn_row, text="🏷️ List & Sell in Roadside Shop", font=("Segoe UI", 10, "bold"),
+                             bg=self.accent_green, fg="#11111b", activebackground=self.accent_purple,
+                             relief="flat", padx=16, pady=6, cursor="hand2", command=self._execute_shop_sell)
+        btn_sell.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Card 2: Revenue Collection & 5-Min Ad Monitor
+        col_card = tk.Frame(container, bg=self.bg_card, padx=16, pady=14, relief="flat",
+                            highlightbackground=self.accent_blue, highlightthickness=1)
+        col_card.pack(fill=tk.X, pady=4)
+
+        tk.Label(col_card, text="💰 REVENUE COLLECTION & AD TIMER MONITOR", font=("Segoe UI", 11, "bold"),
+                 fg=self.accent_blue, bg=self.bg_card).pack(anchor="w", pady=(0, 2))
+        tk.Label(col_card, text="Collect all coins from sold crates into your farm balance with 1 click. Monitor the 5-minute newspaper ad timer.",
+                 font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 8))
+
+        c_row = tk.Frame(col_card, bg=self.bg_card)
+        c_row.pack(fill=tk.X, pady=4)
+
+        btn_collect_coins = tk.Button(c_row, text="💰 Collect All Store Coins Now", font=("Segoe UI", 10, "bold"),
+                                      bg=self.accent_blue, fg="#11111b", activebackground="#74c7ec",
+                                      relief="flat", padx=16, pady=6, cursor="hand2", command=lambda: self._send_cmd("collectcoins 10"))
+        btn_collect_coins.pack(side=tk.LEFT, padx=(0, 12))
+
+        btn_check_ad = tk.Button(c_row, text="📰 Check 5-Min Ad Cooldown", font=("Segoe UI", 9),
+                                 bg=self.bg_card_highlight, fg=self.fg_main, activebackground=self.bg_dark,
+                                 relief="flat", padx=12, pady=6, cursor="hand2", command=lambda: self._send_cmd("adstatus"))
+        btn_check_ad.pack(side=tk.LEFT)
+
+    def _execute_shop_sell(self):
+        item_id = self.shop_item_var.get().split()[0]
+        slot_raw = self.shop_slot_var.get()
+        slot = "all" if "all" in slot_raw.lower() else slot_raw.split("#")[-1]
+        count = self.shop_count_var.get().split()[0]
+        mode_raw = self.shop_price_mode_var.get()
+
+        if "anti-ban" in mode_raw.lower() or "safe" in mode_raw.lower():
+            mode = "antibank"
+        elif "max" in mode_raw.lower():
+            mode = "max"
+        elif "medium" in mode_raw.lower():
+            mode = "medium"
+        elif "low" in mode_raw.lower():
+            mode = "low"
+        else:
+            mode = self.entry_custom_price.get().strip() or "36"
+
+        ad_raw = self.shop_ad_var.get()
+        if "skip" in ad_raw.lower() or "(0)" in ad_raw:
+            ad = "0"
+        elif "force" in ad_raw.lower() or "(1)" in ad_raw:
+            ad = "1"
+        else:
+            ad = "auto"
+
+        cmd = f"shopsell {item_id} {slot} {count} {mode} {ad}"
+        self.log(f"[GUI] Executing Roadside Shop Sell: {cmd}")
+        res = self._send_cmd(cmd)
+        messagebox.showinfo("Shop Sale Dispatched", f"Result: {res}")
+
+    def _init_teleport_tab(self):
+        """Instant screen jump / camera teleport navigator."""
+        container = tk.Frame(self.tab_teleport, bg=self.bg_dark)
+        container.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        nav_card = tk.Frame(container, bg=self.bg_card, padx=16, pady=14, relief="flat",
+                            highlightbackground=self.accent_purple, highlightthickness=1)
+        nav_card.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(nav_card, text="🚀 INSTANT SCREEN JUMP & CAMERA TELEPORT", font=("Segoe UI", 12, "bold"),
+                 fg=self.accent_purple, bg=self.bg_card).pack(anchor="w", pady=(0, 2))
+        tk.Label(nav_card, text="Instantly position the game screen at any farm landmark or custom coordinate with zero lag.",
+                 font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 14))
+
+        # Landmark Quick-Buttons Grid
+        grid = tk.Frame(nav_card, bg=self.bg_card)
+        grid.pack(fill=tk.X, pady=6)
+
+        landmarks = [
+            ("🏡 Farmhouse & Silo Center", "farm", self.accent_blue),
+            ("🏪 Roadside Shop & Mailbox", "shop", self.accent_yellow),
+            ("🐔 Livestock Pens & Pastures", "animals", self.accent_green),
+            ("🏭 Machine Factories & Bakery", "machines", self.accent_purple),
+            ("⛏️ The Mountain Mine", "mine", "#fab387"),
+            ("🚢 River Fishing Boat & Docks", "boat", "#89dceb"),
+            ("🚂 Town Train Station", "town", "#f5c2e7"),
+        ]
+
+        for i, (title, target, color) in enumerate(landmarks):
+            r, c = divmod(i, 2)
+            btn = tk.Button(grid, text=title, font=("Segoe UI", 10, "bold"), bg=color, fg="#11111b",
+                            relief="flat", padx=16, pady=10, cursor="hand2",
+                            command=lambda t=target: self._send_cmd(f"jump {t}"))
+            btn.grid(row=r, column=c, padx=8, pady=6, sticky="ew")
+
+        grid.columnconfigure(0, weight=1)
+        grid.columnconfigure(1, weight=1)
+
+        # Custom Coordinate Panning
+        cust_card = tk.Frame(nav_card, bg=self.bg_card_highlight, padx=12, pady=10)
+        cust_card.pack(fill=tk.X, pady=(16, 4))
+
+        tk.Label(cust_card, text="Manual Coordinate Jump (dx, dy pixels):", font=("Segoe UI", 9, "bold"),
+                 fg=self.fg_main, bg=self.bg_card_highlight).pack(side=tk.LEFT, padx=(0, 8))
+
+        tk.Label(cust_card, text="X:", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card_highlight).pack(side=tk.LEFT)
+        self.entry_jump_x = tk.Entry(cust_card, width=6, font=("Consolas", 10), bg=self.bg_dark, fg="#ffffff", insertbackground="#ffffff", relief="flat")
+        self.entry_jump_x.pack(side=tk.LEFT, padx=4)
+        self.entry_jump_x.insert(0, "300")
+
+        tk.Label(cust_card, text="Y:", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card_highlight).pack(side=tk.LEFT, padx=(6, 0))
+        self.entry_jump_y = tk.Entry(cust_card, width=6, font=("Consolas", 10), bg=self.bg_dark, fg="#ffffff", insertbackground="#ffffff", relief="flat")
+        self.entry_jump_y.pack(side=tk.LEFT, padx=4)
+        self.entry_jump_y.insert(0, "300")
+
+        btn_jump_custom = tk.Button(cust_card, text="Pan Camera", font=("Segoe UI", 9, "bold"),
+                                    bg=self.accent_purple, fg="#11111b", relief="flat", padx=10, pady=2, cursor="hand2",
+                                    command=lambda: self._send_cmd(f"jump {self.entry_jump_x.get()} {self.entry_jump_y.get()}"))
+        btn_jump_custom.pack(side=tk.LEFT, padx=12)
 
     def _init_builder_tab(self):
         builder_box = tk.Frame(self.tab_builder, bg=self.bg_card, padx=20, pady=16, relief="flat",

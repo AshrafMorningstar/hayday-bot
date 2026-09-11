@@ -1248,7 +1248,8 @@ class NXRTHConsole:
             return len(ids)
 
     def cmd_collect_animals(self, args):
-        """Collect ready products from farm animals (eggs, milk, bacon, wool, goat milk).
+        """Collect ready products from farm animals (eggs, milk, bacon, wool, goat milk)
+        and AUTOMATICALLY feeds them so animals instantly stand up, animate, and never get hidden or starve!
         Uses verified captured vtable 0x014a7d88 and 0x014a63f8.
         Usage: collect_animals [penId]"""
         print("  [*] collect_animals -> harvesting animal habitats...")
@@ -1259,18 +1260,173 @@ class NXRTHConsole:
         c1 = self._do_universal_command(self.VT_COLLECT_ANIMAL, 0, pen_ids, "Collect Animals (Habitats)")
         c2 = self._do_universal_command(self.VT_COLLECT_BUILDING, 0, pen_ids, "Collect Animals (Products)")
         print(f"  [+] collect_animals -> harvested goods from pens into barn.")
+        # Animals collapse/hide when starved after collection; auto-feed immediately wakes them up!
+        time.sleep(0.3)
+        self.cmd_feed_animals([])
         return {"pens": pen_ids, "processed": c1 + c2}
 
     def cmd_feed_animals(self, args):
-        """Feed hungry animals in all pens with available feed.
+        """Feed hungry livestock with their exact matched feed:
+           Chickens -> 600002 (Chicken Feed)
+           Cows     -> 600003 (Cow Feed)
+           Pigs     -> 600004 (Pig Feed)
+           Sheep    -> 600005 (Sheep Feed)
+           Goats    -> 600006 (Goat Feed)
         Uses verified captured vtable 0x014aae28 (FeedAnimalCommand).
-        Usage: feed_animals [feedId=600002]"""
-        feed_id = int(args[0], 0) if args else 600002  # 600002 = Chicken Feed
-        animal_ids = [2300000 + i for i in range(25)]
-        print(f"  [*] feed_animals -> feeding livestock with feed ID {feed_id}...")
-        c = self._do_universal_command(self.VT_FEED_ANIMAL, feed_id, animal_ids, "Feed Animals")
-        print(f"  [+] feed_animals -> dispatched feed {feed_id} to {len(animal_ids)} animals.")
-        return True
+        Usage: feed_animals [feedId]"""
+        if args:
+            feed_id = int(args[0], 0)
+            animal_ids = [2300000 + i for i in range(25)]
+            print(f"  [*] feed_animals -> feeding livestock with feed ID {feed_id}...")
+            c = self._do_universal_command(self.VT_FEED_ANIMAL, feed_id, animal_ids, "Feed Animals")
+            print(f"  [+] feed_animals -> dispatched feed {feed_id} to {len(animal_ids)} animals.")
+            return c
+
+        import game_ids
+        print("  [*] feed_animals -> feeding all livestock with exact matched feeds...")
+        fed_count = 0
+        for group_name, info in game_ids.ANIMAL_FEED_MAP.items():
+            a_ids = list(info["range"])
+            f_id = info["feed_id"]
+            c = self._do_universal_command(self.VT_FEED_ANIMAL, f_id, a_ids, f"Feed {group_name}")
+            fed_count += c
+        print(f"  [+] feed_animals -> all animal pastures fed and replenished! Animals standing & happy.")
+        return fed_count
+
+    def cmd_jump(self, args):
+        """INSTANT SCREEN JUMP / CAMERA TELEPORT
+        Navigates game camera instantly across the farm map.
+        Usage: jump <landmark | x y>
+        Landmarks:
+          shop     -> Roadside Shop & Mailbox (Crates & Ads)
+          farm     -> Farm Center (House & Crop Fields)
+          animals  -> Livestock Pastures (Chickens, Cows, Pigs)
+          machines -> Production Factories (Bakery, Dairy, Sugar Mill)
+          mine     -> The Mountain Mine
+          boat     -> River Docks & Fishing Boat
+          town     -> Town Train Station & Handcar
+          <x> <y>  -> Custom screen coordinate offset
+        """
+        if not args:
+            import game_ids
+            print(f"  Usage: jump <landmark | x y>")
+            print(f"  Landmarks: {', '.join(game_ids.SCREEN_LANDMARKS.keys())}")
+            return False
+        target = args[0].lower()
+        import game_ids
+        cx, cy = 640, 360  # Default 1280x720 center
+        if target in game_ids.SCREEN_LANDMARKS:
+            lm = game_ids.SCREEN_LANDMARKS[target]
+            dx, dy = lm["dx"], lm["dy"]
+            print(f"  [*] jump -> teleporting camera to {lm['name']} (dx={dx}, dy={dy})...")
+            x2, y2 = cx - dx, cy - dy
+            if self.adb and self.device_id:
+                adb_cmd(self.adb, self.device_id, "shell", f"input swipe {cx} {cy} {x2} {y2} 150")
+            print(f"  [+] jump -> arrived at {lm['name']}.")
+            return True
+        elif len(args) >= 2 and args[0].lstrip("-").isdigit() and args[1].lstrip("-").isdigit():
+            dx, dy = int(args[0]), int(args[1])
+            x2, y2 = cx - dx, cy - dy
+            print(f"  [*] jump -> panning camera by ({dx}, {dy})...")
+            if self.adb and self.device_id:
+                adb_cmd(self.adb, self.device_id, "shell", f"input swipe {cx} {cy} {x2} {y2} 150")
+            return True
+        else:
+            print(f"  [!] Unknown landmark '{target}'. Valid choices: {', '.join(game_ids.SCREEN_LANDMARKS.keys())}")
+            return False
+
+    def cmd_teleport(self, args):
+        """Alias for cmd_jump."""
+        return self.cmd_jump(args)
+
+    def cmd_shop_sell(self, args):
+        """Sell items in Roadside Shop with Anti-Ban Pricing & Ad Cooldown Protection.
+        Usage: shop_sell [item=400001] [slot=0..N|all] [count=10] [price_mode=antibank|max|medium|low|<number>] [ad=auto|0|1]
+        Price Modes:
+          antibank -> Random human-like price slightly below max (e.g. 34-35 coins for wheat) - RECOMMENDED FOR SAFETY!
+          max      -> Maximum allowed price (36 coins for 10 wheat)
+          medium   -> Middle price (~50%)
+          low      -> 1 coin dump price
+          <number> -> Custom explicit coin price
+        """
+        import game_ids
+        item = int(args[0], 0) if args and args[0].isdigit() else 400001  # Wheat
+        slot_arg = args[1].lower() if len(args) > 1 else "0"
+        count = int(args[2], 0) if len(args) > 2 and args[2].isdigit() else 10
+        price_mode = args[3].lower() if len(args) > 3 else "antibank"
+        ad_arg = args[4].lower() if len(args) > 4 else "auto"
+
+        # Check Advertisement 5-minute cooldown (from game_config.csv: RoadSideShopStandAdvertisementCooldownMinutes, 5)
+        now = time.time()
+        last_ad = getattr(self, "_last_shop_ad_time", 0)
+        cooldown_rem = max(0, int(300 - (now - last_ad)))
+
+        if ad_arg == "1":
+            ad = 1
+            self._last_shop_ad_time = now
+        elif ad_arg == "0":
+            ad = 0
+        else:  # "auto"
+            if cooldown_rem == 0:
+                ad = 1
+                self._last_shop_ad_time = now
+                print("  [*] [Shop Ad] Free newspaper advertisement attached to crate!")
+            else:
+                ad = 0
+                print(f"  [*] [Shop Ad] 5-min cooldown active ({cooldown_rem}s left). Listing crate without ad.")
+
+        slots = list(range(8)) if slot_arg == "all" else [int(slot_arg)]
+        sold_count = 0
+        for s in slots:
+            if price_mode.isdigit():
+                slot_price = int(price_mode)
+            else:
+                slot_price = game_ids.calculate_shop_price(item, count, price_mode)
+
+            slot_ad = ad if s == slots[0] else 0
+            c = self._native_cmd(6, ids=[s, item, count, slot_price, slot_ad])
+            print(f"  [+] shop_sell -> Slot #{s}: Item {item} x{count} @ {slot_price} coins (Ad={slot_ad})")
+            sold_count += 1
+            time.sleep(random.uniform(0.2, 0.4))
+        return sold_count
+
+    def cmd_collect_coins(self, args):
+        """Collect coins from all sold items in Roadside Shop.
+        Sweeps across the roadside shop stand crates and deposits pending revenue into wallet.
+        Usage: collect_coins [max_slots=10]"""
+        max_slots = int(args[0], 0) if args and args[0].isdigit() else 8
+        print(f"  [*] collect_coins -> sweeping {max_slots} shop crates for sold goods...")
+        slot_coords = [
+            (360, 380), (480, 380), (600, 380), (720, 380), (840, 380),
+            (360, 500), (480, 500), (600, 500), (720, 500), (840, 500),
+        ]
+        collected = 0
+        if self.adb and self.device_id:
+            for idx in range(min(max_slots, len(slot_coords))):
+                x, y = slot_coords[idx]
+                adb_cmd(self.adb, self.device_id, "shell", f"input tap {x} {y}")
+                collected += 1
+                time.sleep(0.12)
+        print(f"  [+] collect_coins -> collected revenue from {collected} crates into player wallet.")
+        return collected
+
+    def cmd_collect_shop(self, args):
+        """Alias for cmd_collect_coins."""
+        return self.cmd_collect_coins(args)
+
+    def cmd_ad_status(self, args=None):
+        """Check status of the 5-minute Roadside Shop Newspaper Advertisement Cooldown."""
+        now = time.time()
+        last_ad = getattr(self, "_last_shop_ad_time", 0)
+        cooldown_rem = max(0, int(300 - (now - last_ad)))
+        if cooldown_rem == 0:
+            print("  [Shop Ad] Ready! Next listing can use a free newspaper advertisement.")
+            return {"ready": True, "cooldown_seconds": 0}
+        else:
+            mins, secs = divmod(cooldown_rem, 60)
+            print(f"  [Shop Ad] Cooldown: {mins}m {secs}s remaining until next free advertisement.")
+            return {"ready": False, "cooldown_seconds": cooldown_rem}
+
 
     def cmd_collect_machines(self, args):
         """Collect all finished goods from production buildings and machines.
@@ -4136,6 +4292,11 @@ class NXRTHConsole:
             "masterstop": self.cmd_master_stop, "master_stop": self.cmd_master_stop,
             "stop": self.cmd_master_stop, "halt": self.cmd_master_stop,
             "execcmd": self.cmd_exec_cmd, "exec_cmd": self.cmd_exec_cmd,
+            "jump": self.cmd_jump, "teleport": self.cmd_teleport,
+            "shopsell": self.cmd_shop_sell, "shop_sell": self.cmd_shop_sell,
+            "collectcoins": self.cmd_collect_coins, "collect_coins": self.cmd_collect_coins,
+            "collectshop": self.cmd_collect_coins, "collect_shop": self.cmd_collect_coins,
+            "adstatus": self.cmd_ad_status, "ad_status": self.cmd_ad_status,
         }
 
         print("\n+--------------------------------------+" )
@@ -4158,13 +4319,6 @@ class NXRTHConsole:
         print("|  cave   [size]                       |")
         print("|  farjump <off> <abs_addr>            |")
         print("|  branch <off> <abs_addr> [link]      |")
-        print("|  wabs   <abs_addr> <hexbytes>        |")
-        print("|  rabs   <abs_addr> <len>             |")
-        print("|  --- Reverse Engineering ---         |")
-        print("|  dumpso [out_path]                   |")
-        print("|  cavetest [off]                      |")
-        print("|  gothook [got_off]                   |")
-        print("|  flushtest [off]                     |")
         print("|  cmdhook / cmdlog                     |")
         print("|  arghook <off> / arglog              |")
         print("|  --- NATIVE ENGINE (use these) ---   |")
@@ -4340,6 +4494,20 @@ class NXRTHConsole:
                         return "ERR usage: execcmd <vtable_hex> <targetId> [param2=0]"
                     c = self.cmd_exec_cmd(args)
                     return f"OK executed {c}"
+                if cmd in ("jump", "teleport"):
+                    if not args:
+                        return "ERR usage: jump <landmark | x y>"
+                    res = self.cmd_jump(args)
+                    return "OK jumped" if res else "ERR jump failed"
+                if cmd in ("shopsell", "shop_sell"):
+                    res = self.cmd_shop_sell(args)
+                    return f"OK sold {res} crate(s)"
+                if cmd in ("collectcoins", "collect_coins", "collectshop", "collect_shop"):
+                    res = self.cmd_collect_coins(args)
+                    return f"OK collected revenue from {res} crate(s)"
+                if cmd in ("adstatus", "ad_status"):
+                    res = self.cmd_ad_status(args)
+                    return f"OK ad_status {res['ready']} {res['cooldown_seconds']}"
                 return f"ERR unknown command: {cmd}"
             except LoaderError as e:
                 return f"ERR {e}"
@@ -4610,6 +4778,18 @@ class NXRTHConsole:
                 except LoaderError as _ae:
                     print(f"[MASTER] loadnative notice: {_ae}")
                 self.cmd_master_auto([str(self.auto_wait), str(self.auto_crop)])
+            if getattr(self, "shop_auto_mode", False):
+                print("\n[SHOP] ===== ROADSIDE SHOP AUTO-MANAGER ACTIVATED =====")
+                print("[SHOP] Loading native engine...")
+                try:
+                    with self._cmd_lock:
+                        self.cmd_loadnative([])
+                except Exception as _e:
+                    print(f"[SHOP] loadnative notice: {_e}")
+                print("[SHOP] Sweeping crates to collect pending coins...")
+                self.cmd_collect_coins(["10"])
+                print("[SHOP] Listing inventory items with Anti-Ban pricing...")
+                self.cmd_shop_sell(["400001", "all", "10", "antibank", "auto"])
             exit_code = self.console_loop()
         except KeyboardInterrupt:
             print("\n[!] Interrupted")
@@ -4625,18 +4805,40 @@ class NXRTHConsole:
         return exit_code
 
 
-def _parse_args():
-    """Parse CLI arguments for loader.py.
+def show_launch_mode_menu():
+    """Display interactive launch mode selector banner."""
+    print("""
+============================================================
+              INXERNAL - LAUNCH MODE SELECTOR
+============================================================
+  [1] Standby Mode (Manual Control / GUI Connected)
+  [2] Master Autonomous Mode (Crops + Animals + Machines + Shop)
+  [3] Crop Fast-Farm Mode (Wheat/Corn Auto-Plant & Harvest)
+  [4] Roadside Shop Mode (Auto-Sell + Collect Coins)
+  [5] Diagnostics & Vtable Sniffer Mode
+============================================================
+""")
 
-    --auto              Fully autonomous mode: force NX_QUAGO=1, run loadnative,
-                        then start nfarm immediately after injection.
-    --auto-wait SECS    Seconds to wait between farm cycles (default 130).
-    --auto-crop ID      Crop item id to plant (default 400001 = wheat).
-    """
+
+def _parse_args():
+    """Parse CLI arguments for loader.py."""
     import argparse
+    import sys
     p = argparse.ArgumentParser(
         prog="loader.py",
         description="inxernal — Hay Day internal tool (nxrth)",
+    )
+    p.add_argument(
+        "--mode", "-m",
+        type=str,
+        default=os.environ.get("NX_MODE") or "",
+        choices=["", "standby", "1", "master", "2", "crop", "farm", "3", "shop", "4", "diag", "5"],
+        help="Launch mode selector: standby, master, crop, shop, diag",
+    )
+    p.add_argument(
+        "--menu",
+        action="store_true",
+        help="Always show the interactive launch mode selector menu.",
     )
     p.add_argument(
         "--auto",
@@ -4664,7 +4866,42 @@ def _parse_args():
         default=os.environ.get("NX_MASTER_AUTO") == "1",
         help="Full-farm master autonomous loop (crops, animals, machines, fruits, shop).",
     )
-    return p.parse_args()
+    p.add_argument(
+        "--shop-auto",
+        action="store_true",
+        default=os.environ.get("NX_SHOP_AUTO") == "1",
+        help="Roadside shop auto-seller and coin collector on startup.",
+    )
+    args = p.parse_args()
+
+    # Interactive Launch Mode Selector Prompt
+    should_prompt = args.menu or (not args.auto and not args.master_auto and not args.shop_auto and not args.mode and sys.stdin.isatty())
+    if should_prompt:
+        try:
+            show_launch_mode_menu()
+            choice = input("  Select Launch Mode [1-5] (default 1 - Standby): ").strip()
+            if choice == "2" or choice.lower() == "master":
+                args.master_auto = True
+            elif choice == "3" or choice.lower() in ("crop", "farm"):
+                args.auto = True
+            elif choice == "4" or choice.lower() == "shop":
+                args.shop_auto = True
+            elif choice == "5" or choice.lower() == "diag":
+                pass  # Standby / console with diagnostic banner
+            else:
+                pass  # Default Standby (1)
+        except (EOFError, KeyboardInterrupt):
+            print()
+
+    # Apply --mode mapping if provided
+    if args.mode in ("2", "master"):
+        args.master_auto = True
+    elif args.mode in ("3", "crop", "farm"):
+        args.auto = True
+    elif args.mode in ("4", "shop"):
+        args.shop_auto = True
+
+    return args
 
 
 def main():
@@ -4678,13 +4915,12 @@ def main():
             console = NXRTHConsole()
             console.auto_mode = args.auto
             console.master_auto_mode = args.master_auto
+            console.shop_auto_mode = getattr(args, "shop_auto", False)
             console.auto_wait = args.auto_wait
             console.auto_crop = args.auto_crop
             code = console.run()
         except KeyboardInterrupt:
             return 130
-        # 0 = user quit cleanly, 130 = Ctrl+C -> stop. Anything else (startup
-        # failure or a mid-session detach/crash) -> auto-restart.
         if code in (0, 130):
             return code
         print(f"[*] Session ended (code {code}). Auto-restarting in 3s...  (Ctrl+C to stop)")

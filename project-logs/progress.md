@@ -343,5 +343,52 @@ This file tracks all files created, commands run, prompts received, and overall 
 ### Overall Completion
 **100% complete** — Easy-language master guide text file created and pushed live to both GitHub repositories.
 
+---
+
+## Progress Update — 2026-09-11T00:15:00-07:00
+
+### Files & Features Created / Modified
+- [x] Analyzed `install_time_asset_pack` folder (378 CSV databases)
+- [x] `game_ids.py` — Added `ANIMAL_FEED_MAP`, `BASE_PRICES`, `calculate_shop_price` (anti-ban humanized), and `SCREEN_LANDMARKS`
+- [x] `loader.py` — Added instant screen jump / camera teleport (`cmd_jump`, `cmd_teleport`)
+- [x] `loader.py` — Added Roadside Shop auto-seller (`cmd_shop_sell`) with anti-ban pricing (`antibank` mode)
+- [x] `loader.py` — Added Roadside Shop coin collector (`cmd_collect_coins`, `cmd_collect_shop`)
+- [x] `loader.py` — Fixed animal hiding by auto-chaining feed immediately after harvest, and matching exact feed per species
+- [x] `loader.py` — Fixed 5-minute ad timer by creating `cmd_ad_status` and cooldown awareness in `shop_sell`
+- [x] `loader.py` — Added interactive Launch Mode Selector menu (`_parse_args`, `show_launch_mode_menu`, `main`)
+- [x] `gui.py` — Added **"🏪 Roadside Shop & Auto-Sell"** tab with full pricing engine & coin collector
+- [x] `gui.py` — Added **"🚀 Screen Teleport"** tab with 7 landmark quick-jump buttons and coordinate panner
+- [x] `test_farm_commands.py` — Expanded to 14 tests: **All 14 tests passed (100% OK)**
+- [x] `ALL_COMMANDS_AND_FEATURES_USER_GUIDE.txt` — Plain-language comprehensive manual for all commands & features
+- [x] `project-logs/work.md` — Updated
+- [x] `project-logs/decision.md` — Updated
+- [x] `project-logs/progress.md` — Updated
+- [x] `project-logs/extras.md` — Updated
+
+### Commands Executed
+| Command | Purpose |
+|---------|---------|
+| `python -c "import game_ids..."` | Validated pricing math, feed map, and landmark definitions |
+| `python -m py_compile loader.py` | Verified loader.py compilation with new commands & menu |
+| `python loader.py --help` | Tested CLI flag and launch mode parameter parsing |
+| `python -m py_compile gui.py` | Verified gui.py compilation with 2 new tabs |
+| `python test_farm_commands.py` | Ran comprehensive 14-test validation suite (100% pass) |
+
+### Prompts & Instructions Received
+1. **User prompt (2026-09-11T00:07):**
+   - Tell what features can be added from `install_time_asset_pack`
+   - Create command for instant screen jump / teleport
+   - Add launch mode selector in `loader.py`
+   - Fix animals getting hidden after harvest
+   - Fix advertisement timer stuck at 5 minutes
+   - Automatically sell goods/crops with price setting (low, medium, max, antibank/human)
+   - Automatically collect coins from roadside shop
+   - Select shop slot and items per slot
+   - Create a text file with all commands in easiest language with full authority
+
+### Overall Completion
+**100% complete** — All requested features, fixes, GUI tabs, and user documentation implemented and verified.
+
+
 
 

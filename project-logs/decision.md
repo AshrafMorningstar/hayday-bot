@@ -193,4 +193,23 @@ This file records every important design, architectural, or implementation decis
 - **Steps taken:** Authored `ALL_IDS_AND_COMMANDS_GUIDE.txt`, staged and committed with Git, authenticated with GitHub CLI helper, and pushed to `AshrafMorningstar/hayday-bot` and `AshrafMorningstar/hayday-core-private`.
 - **Impact:** Both GitHub repositories now feature a complete beginner's user manual that is accessible to all users.
 
+---
+
+## Decision: Screen Teleport & Anti-Ban Roadside Shop Automation (2026-09-11T00:15)
+
+- **Decided:**
+  1. Implement instant screen jump / camera teleport (`jump` / `teleport`) using landmark anchors (`shop`, `farm`, `animals`, `machines`, `mine`, `boat`, `town`) via ADB touch panning.
+  2. Implement Roadside Shop auto-selling (`shop_sell`) featuring humanized Anti-Ban pricing (`antibank` mode), slot selection, and stack sizing (up to 10).
+  3. Implement automated shop revenue coin collection (`collect_coins`).
+  4. Fix animal harvesting by automatically chaining species-matched feeding immediately after product collection, preventing animals from entering collapsed/starved states where they appear hidden.
+  5. Fix the 5-minute advertisement timer issue by enforcing game cooldown checks (`RoadSideShopStandAdvertisementCooldownMinutes, 5`), only advertising when eligible and listing crates without ads when the cooldown is active.
+  6. Implement an interactive terminal Launch Mode Selector menu in `loader.py` with 5 selectable presets.
+- **Why needed:** The user provided `install_time_asset_pack` and requested camera jumps, automated selling with anti-ban pricing, coin collection from shop crates, fixes for animals becoming hidden, fixes for the stuck 5-minute ad timer, and a complete plain-language guide.
+- **Alternatives considered:**
+  - Hardcoding maximum static prices: rejected because selling everything at fixed static maximum price triggers heuristic bot detection patterns on game servers; the anti-ban mode jitters prices by 1-3 coins, mimicking human sellers.
+  - Allowing uncontrolled ad requests: rejected because Supercell's server strictly limits free ads to 1 per 5 minutes; spamming ads causes client desync and freezes the UI on diamond purchase prompts.
+- **Steps taken:** Reverse engineered asset pack CSV configurations, implemented methods in `loader.py`, exposed socket commands, added dedicated tabs in `gui.py`, authored `ALL_COMMANDS_AND_FEATURES_USER_GUIDE.txt`, and validated with 14 automated unit tests.
+- **Impact:** Complete shop lifecycle management, anti-ban account protection, zero animal hiding issues, clean ad timer handling, and effortless 1-click screen navigation.
+
+
 

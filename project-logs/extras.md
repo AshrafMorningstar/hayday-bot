@@ -342,4 +342,35 @@ The user wanted a structured logging system baked into the agent's behavior via 
 3. Committed the file to the local git repository.
 4. Synchronized with both remote GitHub repositories using Git and GitHub CLI authentication.
 
+---
+
+## Extras — 2026-09-11T00:15:00-07:00
+
+### Extra Steps Taken
+- **Anti-Ban Humanized Pricing**: Created a jitter algorithm that subtracts 1 to 3 coins from the maximum price for shop listings. This prevents game telemetry from detecting fixed mathematical bot patterns.
+- **Species-Matched Automatic Feeding**: Cross-referenced `animals.csv` and `animal_feed.csv` so when animal products are gathered, every species (chicken, cow, pig, sheep, goat) is fed its exact recipe. This eliminates the starving collapsed state where animals appeared hidden.
+- **Ad Cooldown Shield**: Added an internal timer tracking `_last_shop_ad_time` against `RoadSideShopStandAdvertisementCooldownMinutes = 5` (300 seconds), attaching free ads only when eligible and posting without ads when cooldown is active.
+- **Screen Landmarks Coordinate Mapping**: Mapped pixel and tile offsets for 7 key farm landmarks (`shop`, `farm`, `animals`, `machines`, `mine`, `boat`, `town`) for 1-click screen teleportation.
+
+### Changes Made
+| File | Status | Details |
+|------|--------|---------|
+| `game_ids.py` | MODIFIED | Added `ANIMAL_FEED_MAP`, `BASE_PRICES`, `calculate_shop_price` (anti-ban), and `SCREEN_LANDMARKS` |
+| `loader.py` | MODIFIED | Added `cmd_jump`, `cmd_teleport`, `cmd_shop_sell`, `cmd_collect_coins`, `cmd_ad_status`, auto-feed chain, and interactive Launch Mode Selector |
+| `gui.py` | MODIFIED | Added dedicated **"🏪 Roadside Shop & Auto-Sell"** and **"🚀 Screen Teleport"** tabs |
+| `test_farm_commands.py` | MODIFIED | Added test cases 12, 13, and 14 for jump, shop selling, and animal feeding (14/14 pass) |
+| `ALL_COMMANDS_AND_FEATURES_USER_GUIDE.txt` | NEW | 230-line plain-language guide for all commands, features, and fixes |
+
+### Gotchas & Notes
+- When an animal is collected, Hay Day triggers a collapse animation if unfed. Players frequently believe the animal was deleted or hidden. The fix is to chain `feed_animals` with the species-matched feed immediately after collection.
+- Supercell's server strictly throttles newspaper advertisements to 1 per 5 minutes. Trying to post ads on every crate simultaneously locks the client on diamond purchase confirmations. Handling this by listing unadvertised crates when cooldown is active allows unlimited selling without delay.
+
+### How It Was Built
+1. Extracted ground-truth parameters from `install_time_asset_pack` CSV files.
+2. Built the Python backend routines and exposed them across the control socket and CLI.
+3. Enhanced `gui.py` with intuitive controls, comboboxes, and landmark buttons.
+4. Validated all logic with 14 automated tests.
+5. Authored the user guide in plain English and synchronized all logs.
+
+
 

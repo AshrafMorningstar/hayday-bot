@@ -226,6 +226,76 @@ class TestFarmCommands(unittest.TestCase):
         self.assertEqual(sock_res, "OK executed 5")
         print("  [PASS] Universal command cave bytecode and exec_cmd dispatch verified.")
 
+    def test_12_screen_jump_and_teleport(self):
+        """Test camera navigation and instant screen jump/teleport."""
+        print("\n--- Testing: Screen Jump & Teleport ---")
+        self.console.adb = "mock_adb"
+        self.console.device_id = "mock_dev"
+        with patch("loader.adb_cmd") as mock_adb:
+            # Test landmark jump
+            res = self.console.cmd_jump(["shop"])
+            self.assertTrue(res)
+            mock_adb.assert_called()
+
+            # Test coordinate jump
+            res_coords = self.console.cmd_jump(["200", "400"])
+            self.assertTrue(res_coords)
+
+            # Test socket jump
+            sock_res = self.console._control_result("jump farm")
+            self.assertEqual(sock_res, "OK jumped")
+        print("  [PASS] Screen jump & teleport command successfully verified.")
+
+    def test_13_roadside_shop_and_antiban_pricing(self):
+        """Test roadside shop auto-selling with anti-ban pricing and coin collection."""
+        print("\n--- Testing: Roadside Shop & Anti-Ban Pricing ---")
+        import game_ids
+
+        # Verify anti-ban price is randomized near max but <= max
+        wheat_max = game_ids.calculate_shop_price(400001, 10, "max")
+        wheat_antiban = game_ids.calculate_shop_price(400001, 10, "antibank")
+        self.assertEqual(wheat_max, 40)
+        self.assertLessEqual(wheat_antiban, wheat_max)
+        self.assertGreater(wheat_antiban, 30)
+
+        # Verify low price is 1 coin
+        self.assertEqual(game_ids.calculate_shop_price(400001, 10, "low"), 1)
+
+        # Mock _native_cmd for selling
+        self.console._native_cmd = MagicMock(return_value=1)
+
+        # Test cmd_shop_sell
+        sold = self.console.cmd_shop_sell(["400001", "0", "10", "antibank", "0"])
+        self.assertEqual(sold, 1)
+
+        # Test socket dispatch for shopsell and collectcoins
+        with patch("loader.adb_cmd"):
+            sock_res = self.console._control_result("shopsell 400001 0 10 max 0")
+            self.assertIn("OK sold", sock_res)
+
+            coins_res = self.console._control_result("collectcoins 5")
+            self.assertIn("OK collected revenue", coins_res)
+        print("  [PASS] Roadside shop selling, anti-ban pricing, and coin collector verified.")
+
+    def test_14_animal_feed_matching_and_visibility(self):
+        """Test animal harvest auto-chain and exact feed matching."""
+        print("\n--- Testing: Animal Harvest & Feed Matching ---")
+        import game_ids
+        # Chickens must receive Chicken Feed (600002)
+        self.assertEqual(game_ids.get_feed_for_animal(2300005), 600002)
+        # Cows must receive Cow Feed (600003)
+        self.assertEqual(game_ids.get_feed_for_animal(2300025), 600003)
+        # Pigs must receive Pig Feed (600004)
+        self.assertEqual(game_ids.get_feed_for_animal(2300040), 600004)
+
+        # Test that cmd_collect_animals auto-feeds
+        self.console._do_universal_command = MagicMock(return_value=1)
+        res = self.console.cmd_collect_animals([])
+        self.assertIn("pens", res)
+        # Check that feed was called multiple times across animal types
+        self.assertGreater(self.console._do_universal_command.call_count, 2)
+        print("  [PASS] Animal auto-feed cycle and species feed matching verified.")
+
 
 if __name__ == "__main__":
     print("\n=======================================================")

@@ -12,6 +12,8 @@ tests/libg_dump.so
 tests/libg_ida.so
 libg*.so
 *.pkl
+install_time_asset_pack/
+
 
 
 # --- build outputs / dependencies ---

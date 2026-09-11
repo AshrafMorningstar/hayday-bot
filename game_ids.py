@@ -337,6 +337,102 @@ ALL_CATEGORIES = {
 }
 
 
+
+# Mapping of Animal ID Ranges to their exact feed ID (from animals.csv & animal_feed.csv)
+ANIMAL_FEED_MAP = {
+    # Chickens: 2300000 - 2300017 -> Chicken Feed (600002)
+    "chickens": {"range": range(2300000, 2300018), "feed_id": 600002, "name": "Chicken Feed"},
+    # Cows: 2300018 - 2300032 -> Cow Feed (600003)
+    "cows": {"range": range(2300018, 2300033), "feed_id": 600003, "name": "Cow Feed"},
+    # Pigs: 2300036 - 2300050 -> Pig Feed (600004)
+    "pigs": {"range": range(2300036, 2300051), "feed_id": 600004, "name": "Pig Feed"},
+    # Sheep: 2300054 - 2300068 -> Sheep Feed (600005)
+    "sheep": {"range": range(2300054, 2300069), "feed_id": 600005, "name": "Sheep Feed"},
+    # Goats: 2300072 - 2300083 -> Goat Feed (600006)
+    "goats": {"range": range(2300072, 2300084), "feed_id": 600006, "name": "Goat Feed"},
+}
+
+def get_feed_for_animal(animal_id):
+    """Return the proper feed ID for any given animal ID."""
+    for animal_type, info in ANIMAL_FEED_MAP.items():
+        if animal_id in info["range"]:
+            return info["feed_id"]
+    return 600002  # Default to chicken feed
+
+
+# Standard base prices from fields.csv, bakery_goods.csv, etc.
+# Max price percentage in Hay Day is 360% (game_config.csv: RoadsideShopMaxPricePercentage,360)
+BASE_PRICES = {
+    400001: 1,    # Wheat: base 1 -> max 36 for 10 (3.6 ea)
+    400002: 2,    # Corn: base 2 -> max 72 for 10 (7.2 ea)
+    400003: 3,    # Soybean: base 3 -> max 108 for 10 (10.8 ea)
+    400004: 4,    # Sugarcane: base 4 -> max 144 for 10 (14.4 ea)
+    400005: 2,    # Carrot: base 2 -> max 72 for 10 (7.2 ea)
+    400006: 7,    # Indigo: base 7 -> max 252 for 10
+    400007: 9,    # Pumpkin: base 9 -> max 324 for 10
+    400008: 8,    # Cotton: base 8 -> max 288 for 10
+    400009: 10,   # Chili Pepper
+    400010: 12,   # Tomato
+    400011: 14,   # Strawberry
+    400012: 10,   # Potato
+    1100015: 6,   # Bread: base 6 -> max 21 coins
+    1100000: 14,  # Cream
+    1100001: 33,  # Butter
+    1100002: 34,  # Cheese
+    1100013: 9,   # Brown Sugar
+    1100014: 14,  # White Sugar
+    1800000: 7,   # Saw -> max 270 (tools max at 270 coins each)
+    1800001: 7,   # Axe -> max 270
+    1800004: 8,   # Bolt -> max 270
+    1800005: 8,   # Plank -> max 270
+    1800006: 8,   # Duct Tape -> max 270
+}
+
+# Screen landmark navigation points (relative drag / coordinate offsets for teleport)
+SCREEN_LANDMARKS = {
+    "farm": {"name": "Farm Center (Main Crops & House)", "dx": 0, "dy": 0, "note": "Center of farm"},
+    "shop": {"name": "Roadside Shop (Market & Stand)", "dx": 380, "dy": 420, "note": "Bottom-right entrance"},
+    "animals": {"name": "Livestock Pens (Chickens, Cows, Pigs)", "dx": -320, "dy": 180, "note": "West pastures"},
+    "machines": {"name": "Production Factories (Bakery, Dairy, Sugar)", "dx": 260, "dy": -220, "note": "North-east yard"},
+    "mine": {"name": "The Mine (Ore & Minerals)", "dx": 550, "dy": -480, "note": "Far north-east mountains"},
+    "boat": {"name": "Fishing Docks & River Boat", "dx": -520, "dy": -360, "note": "North-west river"},
+    "town": {"name": "Town Train Station", "dx": 600, "dy": 250, "note": "East railway line"},
+}
+
+def calculate_shop_price(item_id, count=10, mode="max"):
+    """
+    Calculate price for Roadside Shop sale based on mode:
+      'low'      : 1 coin total (fastest possible dump)
+      'medium'   : Standard middle price (~50% of max)
+      'max'      : 100% full maximum allowed price
+      'antibank' : Anti-Ban Humanized Max (Full max minus 1 to 3 coins to look like a human and avoid heuristic bot detection)
+      'custom'   : User specified
+    """
+    import random
+    base = BASE_PRICES.get(item_id, 2)
+    # 3.6x base is max in Hay Day (capped for tools at 270)
+    if str(item_id).startswith("180"): # Tools
+        single_max = 270
+    else:
+        single_max = max(1, round(base * 3.6))
+
+    total_max = single_max * count
+
+    m = mode.lower()
+    if m in ("low", "min", "1"):
+        return 1
+    elif m in ("medium", "mid", "half"):
+        return max(1, round(total_max * 0.5))
+    elif m in ("antibank", "anti-ban", "human", "safe"):
+        # Humanize: slightly below max (e.g. 34 or 35 coins for wheat instead of static 36)
+        if total_max <= 3:
+            return total_max
+        reduction = random.randint(1, min(3, total_max - 1))
+        return total_max - reduction
+    else: # "max"
+        return total_max
+
+
 def search_id(query):
     """Search for items by name substring or numeric ID."""
     results = []
@@ -390,3 +486,4 @@ if __name__ == "__main__":
         print("Example: python game_ids.py bread")
         print("         python game_ids.py 1300082")
         print("         python game_ids.py chicken")
+

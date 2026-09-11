@@ -308,3 +308,42 @@ The guide is saved locally as `ALL_IDS_AND_COMMANDS_GUIDE.txt` and uploaded live
 
 ### How It Was Approached
 Authored the guide using simple, friendly, non-technical language with clear section headings, ASCII formatting tables, and copy-paste command blocks so anyone can understand it immediately. Used GitHub CLI credential helper to securely push the commit to both public and private repositories simultaneously.
+
+---
+
+## Session — 2026-09-11T00:15:00-07:00
+
+### What Was Done
+- Deep-analyzed the `install_time_asset_pack` directory (378 CSV game configuration databases).
+- Extracted game constants:
+  - `RoadSideShopStandAdvertisementCooldownMinutes = 5`
+  - `RoadsideShopMaxStackAmount = 10`
+  - `RoadsideShopMaxPricePercentage = 360%`
+  - Animal species to feed mappings (`animals.csv` & `animal_feed.csv`).
+- Created Instant Screen Jump & Camera Teleport (`jump` / `teleport`) supporting major landmarks (`shop`, `farm`, `animals`, `machines`, `mine`, `boat`, `town`) and custom offset panning.
+- Created Roadside Shop Auto-Seller (`shop_sell`) supporting anti-ban humanized pricing (`antibank` mode), customizable slot targets (`0..N` or `all`), variable stack counts (up to 10), and ad cooldown awareness.
+- Created Roadside Shop Coin Collector (`collect_coins` / `collect_shop`) to harvest revenue from sold crates into player wallet.
+- Solved animal disappearance issue: updated `collect_animals` to auto-chain feeding immediately after harvest, and updated `feed_animals` with exact species feed mapping so animals jump up, peck/chew happily, and remain 100% visible on screen.
+- Solved 5-minute advertisement timer issue: implemented an intelligent cooldown tracker (`ad_status`) that only publishes free ads when the 5-minute timer has expired, preventing client stalls and diamond prompts.
+- Created interactive Launch Mode Selector menu in `loader.py` with 5 selectable presets:
+  - `[1] Standby Mode` (Manual control / GUI connected)
+  - `[2] Master Autonomous Mode` (Full farm + auto-sell)
+  - `[3] Crop Fast-Farm Mode` (Wheat/corn rapid harvesting)
+  - `[4] Roadside Shop Mode` (Auto-sell + collect coins)
+  - `[5] Diagnostics & Vtable Sniffer Mode`
+- Added two dedicated tabs to [`gui.py`](file:///c:/Users/Admin/Desktop/inxernal-main/gui.py):
+  - **"🏪 Roadside Shop & Auto-Sell"**: Visual controls for item selection, slot targeting, anti-ban pricing, ad options, and 1-click coin collection.
+  - **"🚀 Screen Teleport"**: 7 visual landmark buttons for 1-click camera flight and manual panning.
+- Created master plain-language user manual: [`ALL_COMMANDS_AND_FEATURES_USER_GUIDE.txt`](file:///c:/Users/Admin/Desktop/inxernal-main/ALL_COMMANDS_AND_FEATURES_USER_GUIDE.txt).
+- Expanded [`test_farm_commands.py`](file:///c:/Users/Admin/Desktop/inxernal-main/test_farm_commands.py) to 14 unit and integration tests (all 14 passing 100% OK).
+
+### Current Status
+All requested features, fixes, and plain-language documentation are complete, verified with 14 automated tests, and integrated across backend and GUI.
+
+### What Is Planned Next
+- Commit and push all changes to both GitHub repositories (`origin-public` and `origin-private`).
+- Present findings and summary to the user.
+
+### How It Was Approached
+Leveraged the game's actual internal CSV asset tables to determine ground-truth formulas for pricing, stack sizes, and ad cooldowns. Integrated screen panning via ADB swipe emulation, built smart pricing algorithms with human-like jitter to evade bot heuristics, and exposed all commands uniformly across CLI, socket, and Tkinter GUI.
+
