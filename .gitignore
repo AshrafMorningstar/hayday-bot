@@ -10,8 +10,9 @@ gadget_raw.so
 # --- copyrighted game binary dumps (RE reference only, not distributed) ---
 tests/libg_dump.so
 tests/libg_ida.so
-libg_*.so
+libg*.so
 *.pkl
+
 
 # --- build outputs / dependencies ---
 .vs/
