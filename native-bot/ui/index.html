@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hay Day Master — HDX 2.5 Native Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <!-- Glowing background elements -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+
+  <div class="app-container">
+    <!-- Top System Bar -->
+    <header class="top-nav-bar">
+      <div class="nav-left">
+        <div class="app-logo">
+          <span class="logo-shield">🛡️</span>
+          <span class="logo-text">HDX <span class="version">2.5.205</span></span>
+        </div>
+        <nav class="nav-menu">
+          <button class="nav-btn active" data-view="main">Emulators</button>
+          <button class="nav-btn" data-view="accounts">Accounts</button>
+          <button class="nav-btn" id="openFarmConfigBtn">Farm Config</button>
+          <button class="nav-btn" data-view="manual">Manual</button>
+        </nav>
+      </div>
+
+      <div class="nav-middle">
+        <div class="license-badge">
+          <span class="license-dot"></span>
+          <span class="license-time">24d 13h</span>
+          <span class="license-user">| @m0nesy619</span>
+          <button class="icon-btn sync-btn" title="Refresh License">🔄</button>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <div class="device-selector">
+          <span class="device-label">Device:</span>
+          <select id="deviceSelect" class="styled-select">
+            <option value="emulator-5554" selected>emulator-5554 (LDPlayer 9)</option>
+            <option value="emulator-5556">emulator-5556 (NoxPlayer)</option>
+            <option value="127.0.0.1:58526">127.0.0.1:58526 (WSA)</option>
+          </select>
+        </div>
+        <div class="engine-controls">
+          <button id="startEngineBtn" class="engine-btn start">Start engine</button>
+          <button id="stopEngineBtn" class="engine-btn stop" disabled>Stop engine</button>
+          <button id="masterAutoBtn" class="hero-auto-btn">
+            <span class="btn-glow"></span>
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">1-CLICK FULL AUTO</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Instant Screen Jump / Teleport Bar -->
+    <div class="teleport-bar">
+      <span class="teleport-label">go:</span>
+      <button class="teleport-btn" data-dest="home">Home</button>
+      <button class="teleport-btn" data-dest="fishing">Fishing</button>
+      <button class="teleport-btn" data-dest="town">Town</button>
+      <button class="teleport-btn" data-dest="greg">Greg</button>
+      <button class="teleport-btn" data-dest="aitown">AI Town</button>
+      <div class="teleport-visit">
+        <span class="visit-label">visit #</span>
+        <input type="text" id="visitPlayerId" placeholder="Player ID / Tag" class="visit-input">
+        <button id="visitBtn" class="visit-btn">Visit</button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Sub-Tabs (The 15 HDX Tabs) -->
+    <div class="subtabs-bar">
+      <button class="subtab-btn active" data-tab="farm">Farm</button>
+      <button class="subtab-btn" data-tab="map">Map</button>
+      <button class="subtab-btn" data-tab="inventory">Inventory</button>
+      <button class="subtab-btn" data-tab="market">Market</button>
+      <button class="subtab-btn" data-tab="tom">Tom</button>
+      <button class="subtab-btn" data-tab="ops">Ops</button>
+      <button class="subtab-btn" data-tab="social">Social</button>
+      <button class="subtab-btn" data-tab="newspaper">Newspaper</button>
+      <button class="subtab-btn" data-tab="truck">Truck</button>
+      <button class="subtab-btn" data-tab="machines">Machines</button>
+      <button class="subtab-btn" data-tab="mine">Mine</button>
+      <button class="subtab-btn" data-tab="animals">Animals</button>
+      <button class="subtab-btn" data-tab="trees">Trees</button>
+      <button class="subtab-btn" data-tab="fishing">Fishing</button>
+      <button class="subtab-btn" data-tab="info">Info</button>
+    </div>
+
+    <!-- Main Content Area with 15 Tab Views -->
+    <main class="tabs-container">
+      <!-- 1. Farm Tab -->
+      <section id="tab-farm" class="tab-panel active">
+        <div class="farm-overview-grid">
+          <div class="overview-card level-card">
+            <div class="card-title">PLAYER & LEVEL</div>
+            <div class="stat-highlight">
+              <span class="level-badge">LVL 82</span>
+              <span class="farm-name">Master Farmer</span>
+            </div>
+            <div class="currency-row">
+              <span class="currency-item coin-val">💰 1,420,890 Coins</span>
+              <span class="currency-item diamond-val">💎 148 Diamonds</span>
+            </div>
+          </div>
+
+          <div class="overview-card capacity-card">
+            <div class="card-title">STORAGE CAPACITIES</div>
+            <div class="capacity-meter">
+              <div class="cap-header">
+                <span>Barn Capacity</span>
+                <span id="barnCapText">385 / 500 (77%)</span>
+              </div>
+              <div class="cap-bar"><div class="cap-fill barn" style="width: 77%;"></div></div>
+            </div>
+            <div class="capacity-meter">
+              <div class="cap-header">
+                <span>Silo Capacity</span>
+                <span id="siloCapText">190 / 500 (38%)</span>
+              </div>
+              <div class="cap-bar"><div class="cap-fill silo" style="width: 38%;"></div></div>
+            </div>
+          </div>
+
+          <div class="overview-card stats-card">
+            <div class="card-title">SESSION SUMMARY</div>
+            <div class="stats-row">
+              <div class="stat-col"><span class="stat-num" id="statHarvest">144</span><span class="stat-lbl">Harvests</span></div>
+              <div class="stat-col"><span class="stat-num" id="statAnimal">72</span><span class="stat-lbl">Animal Coll.</span></div>
+              <div class="stat-col"><span class="stat-num" id="statProducts">58</span><span class="stat-lbl">Products</span></div>
+              <div class="stat-col"><span class="stat-num" id="statDiamonds">4</span><span class="stat-lbl">Diamonds</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-actions-bar">
+          <button class="quick-action-btn" data-action="harvest">🌾 Harvest & Replant All</button>
+          <button class="quick-action-btn" data-action="animals">🥛 Feed & Collect Animals</button>
+          <button class="quick-action-btn" data-action="collect_shop">💰 Collect Roadside Coins</button>
+          <button class="quick-action-btn" data-action="maintenance">📬 Farm Maintenance</button>
+        </div>
+      </section>
+
+      <!-- 2. Map Tab (Interactive 2D Tile Canvas) -->
+      <section id="tab-map" class="tab-panel">
+        <div class="map-controls-bar">
+          <div class="map-coord-display">
+            <span class="coord-label">Selected Tile:</span>
+            <span id="mapSelectedCoord" class="coord-val">selected x=50688 y=4608</span>
+          </div>
+          <div class="map-placer">
+            <label for="objectPlacerSelect">Object Placer:</label>
+            <select id="objectPlacerSelect" class="styled-select small">
+              <option value="land">Land Plot (Wheat/Corn)</option>
+              <option value="banana_tree">BananaTree</option>
+              <option value="apple_tree">Apple Tree</option>
+              <option value="cherry_tree">Cherry Tree</option>
+              <option value="raspberry_bush">Raspberry Bush</option>
+              <option value="blackberry_bush">Blackberry Bush</option>
+              <option value="chicken_coop">Chicken Coop</option>
+              <option value="cow_pasture">Cow Pasture</option>
+              <option value="bakery">Bakery</option>
+              <option value="dairy">Dairy</option>
+              <option value="decoration">Stone Path / Deco</option>
+            </select>
+            <button id="placeSelectedBtn" class="map-action-btn primary">Place selected</button>
+            <button id="moveModeBtn" class="map-action-btn">Move mode</button>
+            <button id="clearSelectionBtn" class="map-action-btn danger">Clear</button>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="farmMapCanvas" width="1120" height="460"></canvas>
+          <div class="map-overlay-instructions">
+            <span>🖱️ Click tiles on the grid to inspect coordinates or place selected farm objects. Drag to pan.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Inventory Tab -->
+      <section id="tab-inventory" class="tab-panel">
+        <div class="inventory-toolbar">
+          <div class="search-box">
+            <input type="text" id="inventorySearch" placeholder="Search inventory items..." class="styled-input">
+          </div>
+          <div class="inventory-filters">
+            <button class="inv-filter-btn active" data-filter="all">All Items</button>
+            <button class="inv-filter-btn" data-filter="silo">Silo (Crops)</button>
+            <button class="inv-filter-btn" data-filter="barn">Barn (Goods & Tools)</button>
+            <button class="inv-filter-btn" data-filter="expansion">Expansion Materials</button>
+          </div>
+          <button id="sellAllSurplusBtn" class="action-btn success">Sell All Surplus Now</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="inventoryTable">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>In Stock</th>
+                <th>Max Capacity</th>
+                <th>Max Price</th>
+                <th>Keep Minimum</th>
+                <th>Surplus</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Market Tab (Roadside Shop) -->
+      <section id="tab-market" class="tab-panel">
+        <div class="market-settings-header">
+          <div class="market-checkboxes">
+            <label class="custom-chk">
+              <input type="checkbox" id="chkCollectCoins" checked>
+              <span>Collect coins from sold listings</span>
+            </label>
+            <label class="custom-chk">
+              <input type="checkbox" id="chkAdvertiseListings" checked>
+              <span>Advertise listings (Free ad every 5 mins)</span>
+            </label>
+          </div>
+          <div class="market-inputs">
+            <div class="input-inline">
+              <label>Maximum new listings / pass:</label>
+              <input type="number" id="maxListingsPass" value="256" min="1" max="500" class="num-input">
+            </div>
+            <div class="input-inline">
+              <label>Minimum units per box:</label>
+              <input type="number" id="minUnitsBox" value="1" min="1" max="10" class="num-input">
+            </div>
+            <div class="input-inline">
+              <label>Pricing Preset:</label>
+              <select id="marketPricingPreset" class="styled-select">
+                <option value="antiban" selected>🛡️ Anti-Ban Max (-1~3 Coins)</option>
+                <option value="highest">💰 Highest (100% Max Price)</option>
+                <option value="75percent">⚡ 75% Fair Price (Fast Sale)</option>
+                <option value="half">🏷️ Half Price (50%)</option>
+                <option value="lowest">🪙 Lowest (1 Coin Feeders)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="marketTable">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Lvl</th>
+                <th># in Barn/Silo</th>
+                <th>Units / Box</th>
+                <th>Keep At Least</th>
+                <th>Price / Box</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="marketTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. Tom Tab -->
+      <section id="tab-tom" class="tab-panel">
+        <div class="tom-container">
+          <div class="tom-card glass-card">
+            <h3>TOM ERRAND RUNNER</h3>
+            <div class="tom-status-badge">
+              <span class="status-indicator-dot ready"></span>
+              <span id="tomStatusText">Tom is Awake & Ready for Errands</span>
+            </div>
+            <div class="tom-form">
+              <label for="tomItemSelect">Select Target Product:</label>
+              <select id="tomItemSelect" class="styled-select">
+                <option value="diamond_ring">Diamond Ring (Max Profit)</option>
+                <option value="blanket">Blanket</option>
+                <option value="lemon_curd">Lemon Curd</option>
+                <option value="lobster_tail">Lobster Tail</option>
+                <option value="saw">Saw (Tool)</option>
+                <option value="axe">Axe (Tool)</option>
+                <option value="pickaxe">Pickaxe (Mining)</option>
+                <option value="tnt">TNT Barrel</option>
+              </select>
+              <div class="tom-count-picker">
+                <label>Desired Quantity:</label>
+                <div class="tom-chips">
+                  <button class="chip-btn" data-count="5">5x</button>
+                  <button class="chip-btn" data-count="7">7x</button>
+                  <button class="chip-btn active" data-count="9">9x (Max)</button>
+                </div>
+              </div>
+              <div class="tom-actions">
+                <button id="dispatchTomBtn" class="action-btn primary large">Dispatch Tom Now</button>
+                <button id="collectTomBtn" class="action-btn success large">Collect Delivered Items</button>
+              </div>
+            </div>
+          </div>
+          <div class="tom-timer-card glass-card">
+            <h3>TOM NAP TIMER</h3>
+            <div class="timer-display" id="tomTimerDisplay">00:00:00</div>
+            <p class="timer-desc">After collecting items, Tom rests for 2 hours before the next errand.</p>
+            <div class="tom-perks">
+              <div class="perk-item">✓ Always picks the maximum 9x offer</div>
+              <div class="perk-item">✓ Automatically rejects low counts (5x/7x)</div>
+              <div class="perk-item">✓ Automatic collection upon parcel arrival</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Ops Tab -->
+      <section id="tab-ops" class="tab-panel">
+        <div class="ops-grid">
+          <div class="ops-card glass-card">
+            <h3>SCHEDULER & PASS INTERVALS</h3>
+            <div class="ops-row">
+              <label>Full Cycle Interval:</label>
+              <input type="number" id="opsCycleInterval" value="300" class="num-input"> seconds
+            </div>
+            <div class="ops-row">
+              <label class="custom-chk">
+                <input type="checkbox" id="chkSyncNewspaper" checked>
+                <span>Sync to free newspaper refresh (~70s)</span>
+              </label>
+            </div>
+            <div class="ops-row">
+              <label class="custom-chk">
+                <input type="checkbox" id="chkRandomJitter" checked>
+                <span>Anti-Ban human jitter (+/- 15~35s variance)</span>
+              </label>
+            </div>
+          </div>
+          <div class="ops-card glass-card">
+            <h3>ENABLED PASS PIPELINE</h3>
+            <div class="pipeline-list">
+              <label class="chk-block"><input type="checkbox" checked> 🌾 Harvest & Replant Crops</label>
+              <label class="chk-block"><input type="checkbox" checked> 🥛 Feed Mills & Animal Feeds</label>
+              <label class="chk-block"><input type="checkbox" checked> 🏭 Machine Queue Balancing</label>
+              <label class="chk-block"><input type="checkbox" checked> 📦 Roadside Shop Coin Collection</label>
+              <label class="chk-block"><input type="checkbox" checked> 📰 Newspaper Sniper Pass</label>
+              <label class="chk-block"><input type="checkbox" checked> ⛏️ Daily Mine Pass (Cap 10 💎)</label>
+              <label class="chk-block"><input type="checkbox" checked> 🎣 Lake Fishing & Lobster Traps</label>
+              <label class="chk-block"><input type="checkbox" checked> 📬 Farm Mail & Mystery Box</label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Social Tab -->
+      <section id="tab-social" class="tab-panel">
+        <div class="social-grid">
+          <div class="social-card glass-card">
+            <h3>GREG'S DAILY VISIT</h3>
+            <p>Greg's roadside shop offers cheap rare tools and items refreshed daily.</p>
+            <button id="visitGregBtn" class="action-btn primary">Visit Greg & Buy Everything</button>
+          </div>
+          <div class="social-card glass-card">
+            <h3>NEIGHBORHOOD & BOAT HELP</h3>
+            <div class="social-toggles">
+              <label class="custom-chk"><input type="checkbox" checked> <span>Auto-revive trees & bushes for friends</span></label>
+              <label class="custom-chk"><input type="checkbox" checked> <span>Auto-fill easy boat crates</span></label>
+              <label class="custom-chk"><input type="checkbox" checked> <span>Request help on own boat when stuck</span></label>
+            </div>
+            <button id="helpFriendsBtn" class="action-btn success">Scan & Help Friends Now</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Newspaper Tab -->
+      <section id="tab-newspaper" class="tab-panel">
+        <div class="newspaper-header">
+          <div class="sniper-cap-indicator">
+            <span class="cap-title">Daily Expansion Tools Cap:</span>
+            <div class="cap-progress-bar"><div class="cap-fill" style="width: 15%;"></div></div>
+            <span class="cap-val">12 / 80 Sniped</span>
+          </div>
+          <div class="newspaper-actions">
+            <button id="refreshNewspaperBtn" class="action-btn primary">Refresh 200 Adverts</button>
+            <button id="toggleAutoSnipeBtn" class="action-btn success">Auto-Snipe: ON</button>
+          </div>
+        </div>
+
+        <div class="expansion-targets-box">
+          <div class="box-title">Target Expansion & Upgrade Tools:</div>
+          <div class="target-chips">
+            <label class="chip"><input type="checkbox" checked> Land Deed</label>
+            <label class="chip"><input type="checkbox" checked> Mallet</label>
+            <label class="chip"><input type="checkbox" checked> Marker Stake</label>
+            <label class="chip"><input type="checkbox" checked> Bolt</label>
+            <label class="chip"><input type="checkbox" checked> Plank</label>
+            <label class="chip"><input type="checkbox" checked> Duct Tape</label>
+            <label class="chip"><input type="checkbox" checked> Box</label>
+            <label class="chip"><input type="checkbox" checked> Box Screw</label>
+            <label class="chip"><input type="checkbox" checked> Expansion Certificate</label>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="newspaperTable">
+            <thead>
+              <tr>
+                <th>Seller</th>
+                <th>Level</th>
+                <th>Item Advertised</th>
+                <th>Price</th>
+                <th>Detected At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="newspaperTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 9. Truck Tab -->
+      <section id="tab-truck" class="tab-panel">
+        <div class="truck-toolbar">
+          <div class="truck-actions">
+            <button id="sendTruckBtn" class="action-btn success">Send Ready Trucks</button>
+            <button id="trashTruckBtn" class="action-btn danger">Trash Unwanted Orders (Reroll)</button>
+            <button id="truckHelpBtn" class="action-btn">Request Help on Hard Orders</button>
+          </div>
+        </div>
+        <div class="truck-board-grid" id="truckBoardGrid">
+          <!-- 9 Truck Order Cards rendered here -->
+        </div>
+      </section>
+
+      <!-- 10. Machines Tab -->
+      <section id="tab-machines" class="tab-panel">
+        <div class="machines-grid" id="machinesGrid">
+          <!-- 17 Production machines rendered here -->
+        </div>
+      </section>
+
+      <!-- 11. Mine Tab -->
+      <section id="tab-mine" class="tab-panel">
+        <div class="mine-container">
+          <div class="mine-card glass-card">
+            <h3>SMART MINE AUTOMATION</h3>
+            <div class="mine-row">
+              <label>Daily Diamond Cap:</label>
+              <input type="number" id="mineDiamondCap" value="10" min="1" max="50" class="num-input"> 💎
+            </div>
+            <div class="mine-row">
+              <label class="custom-chk">
+                <input type="checkbox" id="chkAutoSmelt" checked>
+                <span>Auto-load extracted ores into 5 Smelters</span>
+              </label>
+            </div>
+            <div class="tool-priorities">
+              <span class="tool-title">Tool Priority Queue:</span>
+              <div class="priority-list">
+                <span class="p-item">1. 🧨 Dynamite</span>
+                <span class="p-item">2. 🛢️ TNT Barrel</span>
+                <span class="p-item">3. ⛏️ Pickaxe</span>
+                <span class="p-item">4. ⛏️ Shovel</span>
+              </div>
+            </div>
+            <button id="mineNowBtn" class="action-btn primary large">Execute Mine Run Now</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12. Animals Tab -->
+      <section id="tab-animals" class="tab-panel">
+        <div class="animals-grid">
+          <div class="animal-card glass-card">
+            <h3>🐔 Chickens (18)</h3>
+            <p>Status: Ready for harvest</p>
+            <span class="feed-status">Feed in stock: 24 Wheat Feeds</span>
+          </div>
+          <div class="animal-card glass-card">
+            <h3>🐮 Cows (15)</h3>
+            <p>Status: Producing milk (18m left)</p>
+            <span class="feed-status">Feed in stock: 18 Cow Feeds</span>
+          </div>
+          <div class="animal-card glass-card">
+            <h3>🐷 Pigs (15)</h3>
+            <p>Status: Ready for bacon</p>
+            <span class="feed-status">Feed in stock: 15 Pig Feeds</span>
+          </div>
+          <div class="animal-card glass-card">
+            <h3>🐑 Sheep (15)</h3>
+            <p>Status: Wool growing (42m left)</p>
+            <span class="feed-status">Feed in stock: 15 Sheep Feeds</span>
+          </div>
+          <div class="animal-card glass-card">
+            <h3>🐐 Goats (12)</h3>
+            <p>Status: Ready for goat milk</p>
+            <span class="feed-status">Feed in stock: 12 Goat Feeds</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13. Trees Tab -->
+      <section id="tab-trees" class="tab-panel">
+        <div class="trees-toolbar">
+          <button id="treesCollectBtn" class="action-btn success">Collect Ready Fruits</button>
+          <button id="treesReviveBtn" class="action-btn">Request Tree Help (!)</button>
+          <button id="treesChopDeadBtn" class="action-btn danger">Chop Dead Wood (Saws & Axes)</button>
+          <button id="treesChopAllBtn" class="action-btn warning">Chop All Trees & Bushes</button>
+        </div>
+        <div class="trees-status-box glass-card">
+          <h3>ORCHARD INVENTORY</h3>
+          <div class="trees-stats-grid">
+            <div class="t-stat"><span>Apple Trees:</span> <strong>24</strong> (18 Ready, 6 Growing)</div>
+            <div class="t-stat"><span>Cherry Trees:</span> <strong>16</strong> (12 Ready, 4 Growing)</div>
+            <div class="t-stat"><span>Banana Trees:</span> <strong>12</strong> (12 Ready)</div>
+            <div class="t-stat"><span>Raspberry Bushes:</span> <strong>30</strong> (20 Ready, 5 Need Help, 5 Dead)</div>
+            <div class="t-stat"><span>Blackberry Bushes:</span> <strong>25</strong> (25 Ready)</div>
+            <div class="t-stat"><span>Cacao Trees:</span> <strong>8</strong> (8 Ready)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14. Fishing Tab -->
+      <section id="tab-fishing" class="tab-panel">
+        <div class="fishing-grid">
+          <div class="fishing-card glass-card">
+            <h3>AREA 4 LAKE FISHING</h3>
+            <p>18 Fishing Spots, Workbench Lures, Lobster Pool & Net Maker.</p>
+            <div class="fishing-status-list">
+              <div>🎣 Active Lures Cast: <strong>6 / 18</strong></div>
+              <div>🦞 Lobsters in Pool: <strong>4 Ready to Collect</strong></div>
+              <div>🕸️ Duck Salon: <strong>2 Ducks Ready</strong></div>
+            </div>
+            <button id="fishLakeNowBtn" class="action-btn primary large">Cast Lures & Collect Fish</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 15. Info Tab -->
+      <section id="tab-info" class="tab-panel">
+        <div class="info-grid">
+          <div class="info-card glass-card">
+            <h3>HARDWARE PROFILE SPOOFING</h3>
+            <table class="info-table">
+              <tr><td>Manufacturer:</td><td><strong>Samsung</strong></td></tr>
+              <tr><td>Model:</td><td><strong>Galaxy S24 Ultra (SM-S928B)</strong></td></tr>
+              <tr><td>Android OS:</td><td><strong>Android 14 (API 34)</strong></td></tr>
+              <tr><td>Fingerprint:</td><td><code>samsung/e3qxxx/e3q:14/UP1A.231005.007/...</code></td></tr>
+            </table>
+          </div>
+          <div class="info-card glass-card">
+            <h3>SECURITY & ANTI-TAMPER</h3>
+            <table class="info-table">
+              <tr><td>Promon SHIELD:</td><td><strong class="text-success">HOOKLESS SUPPRESSED</strong></td></tr>
+              <tr><td>Quago Telemetry:</td><td><strong class="text-success">NULL-ROUTED (0 Packets)</strong></td></tr>
+              <tr><td>Memory Signature:</td><td><strong class="text-success">ZERO SCAN TRACE</strong></td></tr>
+              <tr><td>ADB Roundtrip:</td><td><strong class="text-success">0.42 ms</strong></td></tr>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Dock: Real-time Terminal Log -->
+    <footer class="bottom-dock">
+      <div class="dock-header">
+        <div class="dock-title">
+          <span class="dock-indicator online"></span>
+          <span>LIVE HDX ENGINE LOG</span>
+        </div>
+        <div class="dock-actions">
+          <label class="dock-chk"><input type="checkbox" id="chkAutoScroll" checked> Auto-scroll</label>
+          <button id="copyLogsBtn" class="dock-btn">Copy</button>
+          <button id="clearLogsBtn" class="dock-btn">Clear</button>
+        </div>
+      </div>
+      <div id="terminalBody" class="dock-terminal-body">
+        <div class="log-entry info">[HDX 2.5] Native Bot Engine initialized. Connecting to target emulator...</div>
+        <div class="log-entry success">[ADB] Target found: emulator-5554 (LDPlayer 9)</div>
+        <div class="log-entry success">[SHIELD] Promon suppression active. Zero memory signatures exposed.</div>
+        <div class="log-entry ready">[READY] All 15 HDX tabs and 20+ smart modules loaded. Standby for 1-Click Auto.</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Farm Config Modal (12 Modules) -->
+  <div id="farmConfigModal" class="modal-overlay hidden">
+    <div class="modal-dialog glass-panel">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="modal-icon">⚙️</span>
+          <h2>Farm Configuration</h2>
+        </div>
+        <button id="closeFarmConfigBtn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Module Navigation Sidebar (12 modules) -->
+        <nav class="config-sidebar">
+          <button class="config-nav-item active" data-module="chores">Chores</button>
+          <button class="config-nav-item" data-module="fields">Fields</button>
+          <button class="config-nav-item" data-module="production">Production</button>
+          <button class="config-nav-item" data-module="animals">Animals</button>
+          <button class="config-nav-item" data-module="truck">Truck Orders</button>
+          <button class="config-nav-item" data-module="market">Roadside Shop</button>
+          <button class="config-nav-item" data-module="newspaper">Newspaper Sniper</button>
+          <button class="config-nav-item" data-module="visitors">Visitors</button>
+          <button class="config-nav-item" data-module="mine">Mine</button>
+          <button class="config-nav-item" data-module="trees">Trees & Honey</button>
+          <button class="config-nav-item" data-module="fishing">Fishing</button>
+          <button class="config-nav-item" data-module="expansion">Expansion</button>
+        </nav>
+
+        <!-- Dynamic Inspector Pane -->
+        <div class="config-inspector" id="configInspectorPane">
+          <!-- Populated by app.js based on selected module -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="resetConfigBtn" class="action-btn danger">Reset Defaults</button>
+        <button id="saveConfigBtn" class="action-btn success">Save & Apply Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chop All Confirmation Modal -->
+  <div id="chopConfirmModal" class="modal-overlay hidden">
+    <div class="modal-dialog confirm-dialog glass-panel">
+      <div class="modal-header">
+        <h2>⚠️ Chop Confirmation</h2>
+        <button class="modal-close-btn" id="closeChopModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Chop every tree and bush on this farm?</p>
+        <p class="warning-text">This will consume saws and axes to clear all orchard trees and berry bushes.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelChopBtn" class="action-btn">Cancel</button>
+        <button id="confirmChopBtn" class="action-btn danger">Yes, Chop All</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
