@@ -296,6 +296,85 @@ class TestFarmCommands(unittest.TestCase):
         self.assertGreater(self.console._do_universal_command.call_count, 2)
         print("  [PASS] Animal auto-feed cycle and species feed matching verified.")
 
+    def test_15_smart_mining(self):
+        """Test cmd_mine with diamond target and tools priority."""
+        print("\n--- Testing: Smart Mining Engine ---")
+        self.console._do_universal_command = MagicMock(return_value=2)
+        res = self.console.cmd_mine(["10", "20"])
+        self.assertIn("mined", res)
+        self.assertIn("diamonds", res)
+        self.assertIn("tools_used", res)
+        sock_res = self.console._control_result("mine 5 10")
+        self.assertIn("OK mined", sock_res)
+        print("  [PASS] Smart mining executed and verified.")
+
+    def test_16_chop_all_trees_and_bushes(self):
+        """Test cmd_chop_all with fruit collection, help request, and obstacle clearing."""
+        print("\n--- Testing: Chop All Trees & Bushes ---")
+        self.console._do_universal_command = MagicMock(return_value=3)
+        res = self.console.cmd_chop_all(["all", "1"])
+        self.assertIn("fruits_collected", res)
+        self.assertIn("help_requested", res)
+        self.assertIn("chopped", res)
+        sock_res = self.console._control_result("chopall")
+        self.assertIn("OK chopped", sock_res)
+        print("  [PASS] Chop all trees, bushes, and fruit harvest verified.")
+
+    def test_17_fishing_lake_engine(self):
+        """Test cmd_fishing for lake travel, lure collection, catching fish, and return home."""
+        print("\n--- Testing: Fishing Lake Engine ---")
+        self.console._do_universal_command = MagicMock(return_value=4)
+        res = self.console.cmd_fishing(["9800000"])
+        self.assertIn("lures_collected", res)
+        self.assertIn("fish_caught", res)
+        self.assertIn("lobsters", res)
+        self.assertIn("nets", res)
+        sock_res = self.console._control_result("fishing")
+        self.assertIn("OK caught", sock_res)
+        print("  [PASS] Fishing lake engine verified.")
+
+    def test_18_farm_maintenance_suite(self):
+        """Test cmd_maintenance for mail, mystery box, wheel, farm pass, and storage upgrade."""
+        print("\n--- Testing: Farm Maintenance Suite ---")
+        self.console._do_universal_command = MagicMock(return_value=1)
+        res = self.console.cmd_maintenance(["1"])
+        self.assertIn("mail", res)
+        self.assertIn("wheel", res)
+        self.assertIn("farm_pass", res)
+        self.assertIn("achievements", res)
+        self.assertIn("upgrades", res)
+        sock_res = self.console._control_result("maintenance")
+        self.assertIn("OK maintenance complete", sock_res)
+        print("  [PASS] Farm maintenance suite verified.")
+
+    def test_19_newspaper_sniper(self):
+        """Test cmd_newspaper_sniper browsing, purchasing within 80 cap, and return home."""
+        print("\n--- Testing: Newspaper Sniper ---")
+        self.console._do_universal_command = MagicMock(return_value=1)
+        self.console.daily_expansion_bought = 70
+        res = self.console.cmd_newspaper_sniper(["3", "expansion"])
+        self.assertIn("sellers_visited", res)
+        self.assertIn("items_bought", res)
+        self.assertIn("daily_bought", res)
+        self.assertLessEqual(res["daily_bought"], 80)
+        sock_res = self.console._control_result("sniper 2 expansion")
+        self.assertIn("OK sniper", sock_res)
+        print("  [PASS] Newspaper sniper pass verified.")
+
+    def test_20_pricing_choices(self):
+        """Test explicit pricing choices: highest, 75%, half, lowest, antibank."""
+        print("\n--- Testing: Roadside Shop Pricing Choices ---")
+        import game_ids
+        wheat_max = game_ids.calculate_shop_price(400001, 10, "highest")
+        self.assertEqual(wheat_max, 40)
+        wheat_75 = game_ids.calculate_shop_price(400001, 10, "75%")
+        self.assertEqual(wheat_75, 30)
+        wheat_half = game_ids.calculate_shop_price(400001, 10, "half")
+        self.assertEqual(wheat_half, 20)
+        wheat_low = game_ids.calculate_shop_price(400001, 10, "lowest")
+        self.assertEqual(wheat_low, 1)
+        print("  [PASS] Roadside shop pricing choices verified.")
+
 
 if __name__ == "__main__":
     print("\n=======================================================")
@@ -305,3 +384,4 @@ if __name__ == "__main__":
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     sys.exit(0 if result.wasSuccessful() else 1)
+

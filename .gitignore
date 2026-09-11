@@ -36,6 +36,9 @@ imgui.ini
 # --- python ---
 __pycache__/
 *.pyc
+dist/
+build/
+*.spec
 
 # --- claude code local config ---
 .claude/

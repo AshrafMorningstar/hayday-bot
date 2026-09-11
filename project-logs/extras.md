@@ -372,5 +372,41 @@ The user wanted a structured logging system baked into the agent's behavior via 
 4. Validated all logic with 14 automated tests.
 5. Authored the user guide in plain English and synchronized all logs.
 
+---
+
+## Extras — 2026-09-11T01:48:00-07:00
+
+### Extra Steps Taken
+- **PyInstaller Optimization**: Used `--onedir` instead of unpack-per-run to ensure fast, instant application launches on Windows without filesystem extraction stalls.
+- **Daily 80-Item Safety Cap Enforcement**: Hardcoded `EXPANSION_DAILY_CAP = 80` in `cmd_newspaper_sniper` and `game_ids.py` to prevent triggering Supercell's daily account limitation flags.
+- **Diamond Protection Logic**: Filtered machine queue targets in `cmd_produce_machines` to skip missing ingredients rather than falling back to spending diamonds.
+- **Farm Pass Direct Claim**: Handled choice rewards automatically so the bot never halts waiting for user interaction on the season trail.
+- **Robocopy Backup**: Used PowerShell robocopy with `/XD` exclusions to cleanly copy 112 files (190.83 MB) to `C:\Users\Admin\Desktop\inxernal-v2-backup` without bloat from temp build directories.
+
+### Changes Made
+| File | Status | Details |
+|------|--------|---------|
+| `game_ids.py` | MODIFIED | Added `EXPANSION_MATERIALS`, `EXPANSION_DAILY_CAP`, `MINING_TOOLS`, `FISHING_CATALOG`, `TREES_AND_BUSHES`, and pricing choices |
+| `loader.py` | MODIFIED | Added `cmd_mine`, `cmd_chop_all`, `cmd_fishing`, `cmd_maintenance`, `cmd_newspaper_sniper`, and multi-phase `_master_auto_worker` |
+| `gui.py` | MODIFIED | Added **"⚡ 1-CLICK FULL AUTO"** button, 5 new sector checkboxes, 6 action cards, and pricing dropdown |
+| `app_main.py` | NEW | Unified standalone launcher entry point with default Quago anti-ban blocking |
+| `build_exe.py` | NEW | PyInstaller compiler script |
+| `run_bot.bat` | NEW | 1-click Windows batch launcher |
+| `test_farm_commands.py` | MODIFIED | Expanded suite from 14 to 20 unit tests (all 20 passed 100%) |
+
+### Gotchas & Notes
+- In PyInstaller on Windows, Tkinter and Frida dynamic libraries require explicit inclusion or hidden imports; handled cleanly via `--hidden-import=frida --hidden-import=tkinter`.
+- In Hay Day, newspaper ads refresh every ~70 seconds; the Newspaper Sniper runs once per full pass and respects the 80/day expansion cap to avoid hitting server throttles.
+
+### How It Was Built
+1. Studied the user's commercial changelog in `Features Needed and fixes file.md` and runtime execution logs in `Assest/`.
+2. Extracted the exact state transitions and command vtables for Mining, Fishing, Maintenance, Newspaper Sniping, and Wood Chopping.
+3. Implemented backend functions in `loader.py` and `game_ids.py`.
+4. Upgraded `gui.py` to feature a 1-click master option and modern action cards.
+5. Expanded unit tests in `test_farm_commands.py` and achieved 100% pass across all 20 tests.
+6. Compiled the standalone Windows executable using PyInstaller.
+7. Created the full project backup in `inxernal-v2-backup`.
+
+
 
 

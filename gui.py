@@ -152,7 +152,11 @@ class HayDayBotGUI:
         self.btn_backend = tk.Button(right_box, text="🚀 Connect / Start Backend", font=("Segoe UI", 9, "bold"),
                                      bg=self.accent_blue, fg="#11111b", activebackground=self.accent_purple,
                                      relief="flat", padx=12, pady=5, cursor="hand2", command=self._launch_backend)
-        self.btn_backend.pack(side=tk.LEFT, padx=4)
+        # Global 1-Click Full Automation
+        self.btn_1click_auto = tk.Button(right_box, text="⚡ 1-CLICK FULL AUTO", font=("Segoe UI", 9, "bold"),
+                                         bg=self.accent_green, fg="#11111b", activebackground="#a6e3a1",
+                                         relief="flat", padx=14, pady=5, cursor="hand2", command=self._one_click_master_auto)
+        self.btn_1click_auto.pack(side=tk.LEFT, padx=4)
 
         # Global Emergency Stop in Header
         self.btn_header_stop = tk.Button(right_box, text="🛑 STOP ALL", font=("Segoe UI", 9, "bold"),
@@ -213,7 +217,12 @@ class HayDayBotGUI:
         self.opt_machines = tk.BooleanVar(value=True)
         self.opt_produce = tk.BooleanVar(value=True)
         self.opt_fruits = tk.BooleanVar(value=True)
-        self.opt_sell = tk.BooleanVar(value=False)
+        self.opt_sell = tk.BooleanVar(value=True)
+        self.opt_mine = tk.BooleanVar(value=True)
+        self.opt_fishing = tk.BooleanVar(value=True)
+        self.opt_maintenance = tk.BooleanVar(value=True)
+        self.opt_sniper = tk.BooleanVar(value=True)
+        self.opt_chop = tk.BooleanVar(value=True)
 
         cb1 = tk.Checkbutton(chk_frame, text="🌾 Harvest & Replant Crops", variable=self.opt_crops,
                              bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
@@ -242,6 +251,26 @@ class HayDayBotGUI:
         cb7 = tk.Checkbutton(chk_frame, text="💰 Auto-Sell Surplus in Shop", variable=self.opt_sell,
                              bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9))
         cb7.grid(row=2, column=0, sticky="w", padx=8, pady=3)
+
+        cb8 = tk.Checkbutton(chk_frame, text="⛏️ Smart Mining (Target 10)", variable=self.opt_mine,
+                             bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
+        cb8.grid(row=2, column=1, sticky="w", padx=8, pady=3)
+
+        cb9 = tk.Checkbutton(chk_frame, text="🎣 Fishing Lake & Lures", variable=self.opt_fishing,
+                             bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
+        cb9.grid(row=2, column=2, sticky="w", padx=8, pady=3)
+
+        cb10 = tk.Checkbutton(chk_frame, text="🎁 Farm Pass, Mail & Wheel", variable=self.opt_maintenance,
+                              bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
+        cb10.grid(row=3, column=0, sticky="w", padx=8, pady=3)
+
+        cb11 = tk.Checkbutton(chk_frame, text="📰 Newspaper Sniper (80/Day)", variable=self.opt_sniper,
+                              bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
+        cb11.grid(row=3, column=1, sticky="w", padx=8, pady=3)
+
+        cb12 = tk.Checkbutton(chk_frame, text="🪓 Chop Dead Trees & Bushes", variable=self.opt_chop,
+                              bg=self.bg_card, fg=self.fg_main, selectcolor="#11111b", activebackground=self.bg_card, font=("Segoe UI", 9, "bold"))
+        cb12.grid(row=3, column=2, sticky="w", padx=8, pady=3)
 
         # Settings row (Delay & Crop ID)
         set_row = tk.Frame(option_card, bg=self.bg_card)
@@ -324,6 +353,48 @@ class HayDayBotGUI:
                               relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("collectfruits"))
         b4_fruits.pack(fill=tk.X, pady=2)
 
+        # Card 5: Smart Mining
+        c5 = self._create_card(grid_frame, "⛏️ Smart Mining", 2, 0)
+        tk.Label(c5, text="Mine ores & diamonds using TNT, Dynamite, Pickaxe, Shovel.", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b5_mine = tk.Button(c5, text="Start Mining Pass (Target: 10 Diamonds)", bg=self.accent_blue, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                            relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("mine 10 30"))
+        b5_mine.pack(fill=tk.X, pady=2)
+
+        # Card 6: Fishing Lake Area
+        c6 = self._create_card(grid_frame, "🎣 Fishing Lake Area", 2, 1)
+        tk.Label(c6, text="Travel lake, collect lures, catch fish, harvest lobsters/nets.", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b6_fish = tk.Button(c6, text="Run Fishing & Lake Pass", bg=self.accent_blue, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                            relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("fishing 9800000"))
+        b6_fish.pack(fill=tk.X, pady=2)
+
+        # Card 7: Farm Maintenance Suite
+        c7 = self._create_card(grid_frame, "🎁 Maintenance & Perks", 3, 0)
+        tk.Label(c7, text="Collect mail, mystery box, spin wheel, farm pass & achievements.", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b7_maint = tk.Button(c7, text="Claim Pass, Wheel, Mail & Upgrades", bg=self.accent_blue, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                             relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("maintenance 1"))
+        b7_maint.pack(fill=tk.X, pady=2)
+
+        # Card 8: Newspaper Sniper
+        c8 = self._create_card(grid_frame, "📰 Newspaper Sniper", 3, 1)
+        tk.Label(c8, text="Scan 200 ads, buy bolts, planks, tapes & tools within 80 limit.", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b8_snipe = tk.Button(c8, text="Snipe Expansion Items (80/Day Limit)", bg=self.accent_blue, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                             relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("sniper 10 expansion"))
+        b8_snipe.pack(fill=tk.X, pady=2)
+
+        # Card 9: Chop Dead Trees & Bushes
+        c9 = self._create_card(grid_frame, "🪓 Dead Trees & Bushes", 4, 0)
+        tk.Label(c9, text="Chop dead trees/bushes (Saws, Axes, Peanut, Dandelion).", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b9_chop = tk.Button(c9, text="Chop All Dead Wood & Request Help", bg=self.accent_blue, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                            relief="flat", pady=5, cursor="hand2", command=lambda: self._send_cmd("chopall all 1"))
+        b9_chop.pack(fill=tk.X, pady=2)
+
+        # Card 10: 1-Click All-in-One Master
+        c10 = self._create_card(grid_frame, "⚡ 1-Click Master", 4, 1)
+        tk.Label(c10, text="Execute complete autonomous farm cycle with zero extra clicks.", font=("Segoe UI", 9), fg=self.fg_sub, bg=self.bg_card).pack(anchor="w", pady=(0, 6))
+        b10_master = tk.Button(c10, text="⚡ Engage 1-Click Master Auto", bg=self.accent_green, fg="#11111b", font=("Segoe UI", 9, "bold"),
+                               relief="flat", pady=5, cursor="hand2", command=self._one_click_master_auto)
+        b10_master.pack(fill=tk.X, pady=2)
+
     def _create_card(self, parent, title, row, col):
         card = tk.Frame(parent, bg=self.bg_card, padx=14, pady=10, relief="flat",
                         highlightbackground=self.bg_card_highlight, highlightthickness=1)
@@ -342,6 +413,11 @@ class HayDayBotGUI:
         if self.opt_produce.get(): mods.append("produce")
         if self.opt_fruits.get(): mods.append("fruits")
         if self.opt_sell.get(): mods.append("sell")
+        if self.opt_mine.get(): mods.append("mine")
+        if self.opt_fishing.get(): mods.append("fishing")
+        if self.opt_maintenance.get(): mods.append("maintenance")
+        if self.opt_sniper.get(): mods.append("sniper")
+        if self.opt_chop.get(): mods.append("chop")
 
         if not mods:
             messagebox.showwarning("No Sectors Selected", "Please select at least one sector above (Crops, Animals, Machines, etc.).")
@@ -362,6 +438,27 @@ class HayDayBotGUI:
             self.status_text.config(text=f"Automation Running: {mod_str} (Delay: {delay}s)")
         else:
             self.log(f"[-] Backend response: {res}")
+
+    def _one_click_master_auto(self):
+        """1-Click Viral Full Automation: Sets all smart features to ON and begins unattended farming."""
+        self.log("[GUI] ⚡ 1-CLICK FULL AUTOMATION ENGAGED!")
+        if not self.connected:
+            self._launch_backend()
+            time.sleep(1.0)
+        self.opt_crops.set(True)
+        self.opt_animals.set(True)
+        self.opt_feed.set(True)
+        self.opt_machines.set(True)
+        self.opt_produce.set(True)
+        self.opt_fruits.set(True)
+        self.opt_sell.set(True)
+        self.opt_mine.set(True)
+        self.opt_fishing.set(True)
+        self.opt_maintenance.set(True)
+        self.opt_sniper.set(True)
+        self.opt_chop.set(True)
+        self._start_automation()
+        messagebox.showinfo("1-Click Master Automation", "🚀 1-Click Full Automation Started!\nAll sectors (Crops, Animals, Machines, Mining, Fishing, Maintenance, Sniper, Shop) are now running automatically.")
 
     def _stop_all(self):
         """Send emergency stop to all backend threads immediately."""
@@ -421,8 +518,15 @@ class HayDayBotGUI:
 
         tk.Label(r2, text="Price Setting:", font=("Segoe UI", 9, "bold"), fg=self.fg_main, bg=self.bg_card, width=12, anchor="w").pack(side=tk.LEFT)
         self.shop_price_mode_var = tk.StringVar(value="Anti-Ban Max (Human - Safe)")
-        price_modes = ["Anti-Ban Max (Human - Safe)", "Absolute Max Price", "Medium (~50% Max)", "Low (1 Coin Quick Dump)", "Custom Price"]
-        combo_price = ttk.Combobox(r2, textvariable=self.shop_price_mode_var, values=price_modes, state="readonly", width=24)
+        price_modes = [
+            "Anti-Ban Max (Human - Safe)",
+            "Highest (100% Max Ceiling)",
+            "75% of Price Ceiling",
+            "Half (50% of Price Ceiling)",
+            "Lowest (1 Coin Emergency Dump)",
+            "Custom Price"
+        ]
+        combo_price = ttk.Combobox(r2, textvariable=self.shop_price_mode_var, values=price_modes, state="readonly", width=26)
         combo_price.pack(side=tk.LEFT, padx=(0, 10))
 
         # Row 3: Custom Price Entry & Ad Option
@@ -479,14 +583,16 @@ class HayDayBotGUI:
         count = self.shop_count_var.get().split()[0]
         mode_raw = self.shop_price_mode_var.get()
 
-        if "anti-ban" in mode_raw.lower() or "safe" in mode_raw.lower():
+        if "anti" in mode_raw.lower() or "safe" in mode_raw.lower():
             mode = "antibank"
-        elif "max" in mode_raw.lower():
-            mode = "max"
-        elif "medium" in mode_raw.lower():
-            mode = "medium"
-        elif "low" in mode_raw.lower():
-            mode = "low"
+        elif "highest" in mode_raw.lower() or "100%" in mode_raw:
+            mode = "highest"
+        elif "75" in mode_raw:
+            mode = "75%"
+        elif "half" in mode_raw.lower() or "50" in mode_raw or "medium" in mode_raw.lower():
+            mode = "half"
+        elif "lowest" in mode_raw.lower() or "1 coin" in mode_raw.lower() or "low" in mode_raw.lower():
+            mode = "lowest"
         else:
             mode = self.entry_custom_price.get().strip() or "36"
 

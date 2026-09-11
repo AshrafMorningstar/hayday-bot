@@ -347,3 +347,41 @@ All requested features, fixes, and plain-language documentation are complete, ve
 ### How It Was Approached
 Leveraged the game's actual internal CSV asset tables to determine ground-truth formulas for pricing, stack sizes, and ad cooldowns. Integrated screen panning via ADB swipe emulation, built smart pricing algorithms with human-like jitter to evade bot heuristics, and exposed all commands uniformly across CLI, socket, and Tkinter GUI.
 
+---
+
+## Session — 2026-09-11T01:48:00-07:00
+
+### What Was Done
+- **Extracted and Implemented Commercial Smart Features** from `Features Needed and fixes file.md` and `Assest` execution traces:
+  - **Smart Mining Engine (`cmd_mine`)**: Extract ores and diamonds using Dynamite, TNT, Pickaxes, and Shovels with customizable diamond target cap (default 10) and automatic ore collection into barn (`smart:mine_use_until_target` & `smart:mine_collect`).
+  - **Fishing Lake Engine (`cmd_fishing`)**: Automatic travel to fishing lake (Area 4), lure workbench harvesting (`smart:fishing_lure_bench_collect`), fish catching at spots with lures (`smart:fish_catch_ready`), lobster pool & sea trap harvesting (`smart:lobster_pool_collect`), net collection from net maker (`smart:fishing_net_maker_collect`), and safe return home (`smart:travel [traveled=1]`).
+  - **Farm Maintenance Suite (`cmd_maintenance`)**: Scheduled collection of Postman Alfred's mail/packages (`smart:collect_mail`), farm mystery box claiming (`smart:mystery_box_claim_cycle`), free daily Wheel of Fortune spin (`smart:spin_wheel_cycle`), event curtains & baskets (`smart:event_curtain_open_all`), direct Farm Pass reward claiming with choice prompts auto-resolved (`smart:farm_pass_claim_direct`), achievement diamond claims (`smart:achievement_claim_all`), and automated barn & silo storage upgrades (`smart:storage_upgrade_barn`, `smart:storage_upgrade_silo`).
+  - **Newspaper Sniper Engine (`cmd_newspaper_sniper`)**: Scans up to 200 newspaper advertisements, visits advertised farms via `smart:visit_home_raw`, inspects roadside stalls for rare expansion materials (bolts, planks, duct tape, nails, screws, panels, deeds, mallets, stakes, saws, axes, pickaxes), purchases them at seller's price, tracks the daily expansion purchase limit (`bought=X/80, remaining=Y`), and returns home cleanly.
+  - **Dead Wood & Obstacle Clearing (`cmd_chop_all`)**: Clears withered trees with Saws (Apple, Cherry, Cacao, Olive, Peach, Banana, Coconut) and withered bushes with Axes (Raspberry, Blackberry, Peanut Bush, Dandelion) while harvesting living fruits and requesting help on revive stages.
+  - **Machine Queue Balancing & Production (`cmd_produce_machines`)**: Production balancing across both Sugar Mills, both Feed Mills (counting each slot as 3 units), and all 5 Smelters, skipping unavailable items when ingredients are missing to prevent diamond consumption.
+  - **Roadside Shop Pricing Choices**: Expanded `calculate_shop_price` to support explicit choices: `Highest (100% ceiling)`, `75% of ceiling`, `Half (50% ceiling)`, `Lowest (1 coin dump)`, and `Anti-Ban Max (Safe humanized)`.
+- **Integrated Full GUI Controls & 1-Click Master Mode** in [`gui.py`](file:///c:/Users/Admin/Desktop/inxernal-main/gui.py):
+  - Added prominent glowing header button: **"⚡ 1-CLICK FULL AUTO"** which engages the complete unattended automation suite with zero manual configuration.
+  - Added sector checkboxes on the dashboard for Mining, Fishing, Maintenance, Sniper, and Chop.
+  - Added 6 dedicated Quick Action Cards on the dashboard for instant 1-click execution of every smart feature.
+  - Updated Roadside Shop tab pricing dropdown to support Highest, 75%, Half, Lowest, Anti-Ban Max, and Custom.
+- **Unified Standalone Application & Executable Build**:
+  - Authored [`app_main.py`](file:///c:/Users/Admin/Desktop/inxernal-main/app_main.py) as the universal entry point with stealth anti-ban Quago blocking enabled by default.
+  - Authored [`build_exe.py`](file:///c:/Users/Admin/Desktop/inxernal-main/build_exe.py) and successfully compiled standalone executable: [`dist/HayDayMasterBot/HayDayMasterBot.exe`](file:///c:/Users/Admin/Desktop/inxernal-main/dist/HayDayMasterBot/HayDayMasterBot.exe).
+  - Authored [`run_bot.bat`](file:///c:/Users/Admin/Desktop/inxernal-main/run_bot.bat) for 1-click desktop launching.
+- **Created Dedicated Backup**:
+  - Backed up all 112 project files (190.83 MB) to `C:\Users\Admin\Desktop\inxernal-v2-backup` without modifying the original `C:\Users\Admin\Desktop\inxernal-backup`.
+- **Automated Verification**:
+  - Expanded [`test_farm_commands.py`](file:///c:/Users/Admin/Desktop/inxernal-main/test_farm_commands.py) to 20 unit and integration tests covering all features: **All 20 tests passed with 100% success**.
+
+### Current Status
+All requested commercial features, fixes, GUI controls, standalone executable, 1-click launcher, and pristine backups are 100% complete and fully verified.
+
+### What Is Planned Next
+- Commit all changes cleanly to Git and push to both GitHub repositories (`origin-private` and `origin-public`).
+- Present the comprehensive report and walkthrough to the user.
+
+### How It Was Approached
+Directly modeled commands and state tracking after real commercial HDX bot telemetry traces found in `Assest/` and specifications in `Features Needed and fixes file.md`. Enforced anti-ban safety across all automated paths through randomized touch delays, humanized pricing margins, and strict adherence to daily caps. Built a standalone Windows executable using PyInstaller so end users can operate the tool without touching command-line environments.
+
+

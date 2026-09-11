@@ -399,38 +399,106 @@ SCREEN_LANDMARKS = {
     "town": {"name": "Town Train Station", "dx": 600, "dy": 250, "note": "East railway line"},
 }
 
-def calculate_shop_price(item_id, count=10, mode="max"):
+EXPANSION_DAILY_CAP = 80
+
+EXPANSION_MATERIALS = {
+    # Barn expansion
+    1800004: "Bolt",
+    1800005: "Plank",
+    1800006: "Duct Tape",
+    # Silo expansion
+    1800009: "Box of Nails",
+    1800010: "Wood Panel",
+    1800011: "Screw",
+    # Land & Town expansion
+    1800012: "Land Deed",
+    1800013: "Mallet",
+    1800014: "Marker Stake",
+    # Clearing & Mining Tools
+    1800000: "Saw",
+    1800001: "Axe",
+    1800002: "Shovel",
+    1800003: "Pickaxe",
+    1800007: "Dynamite",
+    1800008: "TNT Barrel",
+}
+
+MINING_TOOLS = {
+    1800007: "Dynamite",
+    1800008: "TNT Barrel",
+    1800003: "Pickaxe",
+    1800002: "Shovel",
+}
+
+FISHING_CATALOG = {
+    # Fishing Lures
+    9800000: "Red Lure (Free/Worm)",
+    9800001: "Green Lure",
+    9800002: "Blue Lure",
+    9800003: "Purple Lure",
+    9800004: "Gold Lure",
+    # Nets & Traps
+    9800005: "Fishing Net",
+    9800006: "Mystery Net",
+    9800007: "Lobster Trap",
+    9800008: "Duck Trap",
+}
+
+TREES_AND_BUSHES = {
+    # Trees (cleared with Saws 1800000)
+    1300015: "Apple Tree",
+    1300016: "Cherry Tree",
+    1300017: "Cacao Tree",
+    1300018: "Coffee Bush / Tree",
+    1300019: "Olive Tree",
+    1300071: "Peach Tree",
+    1300072: "Banana Tree",
+    1300073: "Coconut Tree",
+    # Bushes (cleared with Axes 1800001)
+    1300013: "Raspberry Bush",
+    1300014: "Blackberry Bush",
+    1300080: "Peanut Bush",
+    1300081: "Dandelion Bush",
+}
+
+def calculate_shop_price(item_id, count=10, mode="highest"):
     """
-    Calculate price for Roadside Shop sale based on mode:
-      'low'      : 1 coin total (fastest possible dump)
-      'medium'   : Standard middle price (~50% of max)
-      'max'      : 100% full maximum allowed price
-      'antibank' : Anti-Ban Humanized Max (Full max minus 1 to 3 coins to look like a human and avoid heuristic bot detection)
-      'custom'   : User specified
+    Calculate price for Roadside Shop sale based on choice:
+      'highest' / 'max' / '100%' : 100% full maximum allowed price ceiling
+      '75%' / '75'               : 75% of maximum allowed price ceiling
+      'half' / '50%' / '50'      : 50% of maximum allowed price ceiling
+      'lowest' / 'low' / 'min'   : 1 coin total (fastest possible emergency dump)
+      'antibank' / 'safe'        : Anti-Ban Humanized Max (Full ceiling minus 1-3 coins to bypass bot pattern detection)
+      <number>                   : Explicit coin value
     """
     import random
     base = BASE_PRICES.get(item_id, 2)
     # 3.6x base is max in Hay Day (capped for tools at 270)
-    if str(item_id).startswith("180"): # Tools
+    if str(item_id).startswith("180"):  # Tools
         single_max = 270
     else:
         single_max = max(1, round(base * 3.6))
 
     total_max = single_max * count
 
-    m = mode.lower()
-    if m in ("low", "min", "1"):
+    m = str(mode).strip().lower()
+    if m in ("lowest", "low", "min", "1"):
         return 1
-    elif m in ("medium", "mid", "half"):
-        return max(1, round(total_max * 0.5))
+    elif m in ("75%", "75", "threequarters"):
+        return max(1, round(total_max * 0.75))
+    elif m in ("half", "50%", "50", "medium", "mid"):
+        return max(1, round(total_max * 0.50))
     elif m in ("antibank", "anti-ban", "human", "safe"):
         # Humanize: slightly below max (e.g. 34 or 35 coins for wheat instead of static 36)
         if total_max <= 3:
             return total_max
         reduction = random.randint(1, min(3, total_max - 1))
         return total_max - reduction
-    else: # "max"
+    elif m.isdigit():
+        return int(m)
+    else:  # "highest", "max", "100%"
         return total_max
+
 
 
 def search_id(query):
