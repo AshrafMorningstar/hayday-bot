@@ -141,7 +141,47 @@ This file records every important design, architectural, or implementation decis
 - **Alternatives considered:**
   - Keeping `inxernal`: rejected because nobody searches "inxernal" unless they already know the branding; discoverability would be near zero.
   - Using `supercell-bot`: rejected because it is too broad and dilutes focus on Hay Day.
-- **Steps taken:** Queried GitHub API to confirm `AshrafMorningstar/hayday-bot` was completely available, created the repository with rich description and topics, and updated README metadata.
-- **Impact:** The repository is primed for top placement in GitHub explore, topic feeds, and search engine crawlers.
+---
+
+## Decision: Universal ARM64 Code Cave for Arbitrary LogicCommand Execution (2026-09-10T22:15)
+
+- **Decided:** Implement `_build_universal_cave` in ARM64 machine code that dynamically instantiates a 0x48-byte `LogicCommand` via `operator new`, sets the target virtual method table pointer (`vtable_abs`), populates `+0x24` (target ID) and `+0x28` (secondary param), and submits it to `tryToExecuteCommand(gameMode, cmd, 0)`.
+- **Why needed:** Analysis of the user's 24 captured commands showed that Hay Day executes every game action (harvesting, feeding, producing, collecting) as a polymorphic `LogicCommand` subclass. Rather than writing separate native hooks for each action, a universal command gate can execute ANY command in the Titan engine.
+- **Alternatives considered:**
+  - Using Frida's `Memory.alloc` and JavaScript RPC: rejected because JavaScript RPC calls from the host have noticeable latency, cannot run safely inside the game tick thread without causing frame drops or crashes, and don't work reliably when Frida detaches.
+  - Relying on screen touch automation: rejected because touches fail when screens scroll or UI elements are covered.
+- **Steps taken:** Reverse engineered the exact `LogicCommand` memory layout from the captured logs, synthesized the ARM64 assembly routine, wrote tests in `test_farm_commands.py`, and validated 100% test pass.
+- **Impact:** Any captured vtable and parameters can now be executed instantly with `exec_cmd <vtable> <targetId> [param2]`.
+
+---
+
+## Decision: Build GUI with Standard Library Tkinter (2026-09-10T22:15)
+
+- **Decided:** Build `gui.py` using Python's built-in `tkinter` library, styled with a modern dark theme and connected via TCP socket to `loader.py:31350`.
+- **Why needed:** The user asked whether this program can be made into a GUI and how to create it. Using `tkinter` eliminates any external pip dependencies (like PyQt6, PySide6, or Electron) which could fail to install on restricted Windows environments.
+- **Alternatives considered:**
+  - Web UI (React/Vue/Next.js): rejected because a desktop automation tool is much faster and simpler as a single native window without Node.js web server overhead.
+  - PyQt6 / CustomTkinter: rejected because they require separate pip downloads, whereas standard `tkinter` comes pre-bundled with Windows Python and works immediately on double-click.
+---
+
+## Decision: Launch Backend in Standby Mode by Default (2026-09-10T23:05)
+
+- **Decided:** Launch `loader.py` in Standby Mode (without `--master-auto` or `--auto` flags) when triggered from the GUI, and require the user to explicitly click "Start Automation" after selecting desired sectors.
+- **Why needed:** The user reported that starting the GUI was immediately launching the auto-farming loop without giving them a choice of what to do or an option to stop.
+- **Alternatives considered:**
+  - Asking the user via a modal dialog at launcher startup: rejected because checkboxes in the GUI dashboard provide a more flexible, non-blocking interface.
+- **Steps taken:** Removed `--master-auto` from `_launch_backend` in `gui.py`, built the sector options panel, added `self._master_stop` in `loader.py`, and added `stop` / `master start` / `master stop` socket commands.
+- **Impact:** The bot never acts on game memory upon launch until the user explicitly selects options and commands it to run. Emergency stop halts actions at any point.
+
+---
+
+## Decision: Build Master Global ID Catalog & In-GUI Searcher (2026-09-10T23:40)
+
+- **Decided:** Create a dedicated module `game_ids.py` cataloging the Titan Global ID system across all classes (4, 6, 11, 13, 18, 23) and integrate an interactive Treeview search tab into `gui.py`.
+- **Why needed:** The user asked how to get all ID codes of everything in the game. Explaining the mathematical formula alone is insufficient; providing a searchable reference directly in the CLI and GUI lets the user look up any item instantly and pipe it into custom commands with 1 click.
+- **Alternatives considered:**
+  - Dumping raw APK CSV files to disk: rejected because raw CSV files contain hundreds of internal engine rows that are confusing to read without mapping to Global IDs.
+- **Steps taken:** Cataloged all known items into structured dictionaries, built bidirectional search functions (by substring name and by ID), and connected them to the GUI Treeview with "Send to Command Builder" buttons.
+- **Impact:** Users can search and send any ID to the memory injection builder without manual transcription.
 
 

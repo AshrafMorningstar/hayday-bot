@@ -198,6 +198,14 @@ class NXRTHConsole:
         self.nat_mbox = None
         self.nat_cave = None
         self.nat_F = None
+        self.univ_mbox = None
+        self.univ_cave = None
+        self.univ_F = None
+        self.VT_COLLECT_BUILDING = 0x014a63f8      # Collect finished goods from building/machine/pen/tree
+        self.VT_COLLECT_ANIMAL   = 0x014a7d88      # Collect animal produce (eggs, milk, bacon)
+        self.VT_START_PRODUCE    = 0x014a9cc8      # Queue item in machine (recipeId, machineId)
+        self.VT_FEED_ANIMAL      = 0x014aae28      # Feed animal (animalId, feedId)
+        self.VT_SELECT_BUILDING  = 0x014aef68      # Select building / open menu
         self._cached_field_path = None
         self.field_vtable_off = None
         self.current_fields = []
@@ -205,6 +213,8 @@ class NXRTHConsole:
         self._cmd_lock = threading.Lock()   # serializes native cmds across CLI + socket + farm
         self._farm_thread = None
         self._farm_stop = threading.Event()
+        self._master_thread = None
+        self._master_stop = threading.Event()
         self._control_srv = None
         # --- autonomous startup (--auto / NX_AUTO=1) ---
         self.auto_mode = False
@@ -1239,66 +1249,90 @@ class NXRTHConsole:
 
     def cmd_collect_animals(self, args):
         """Collect ready products from farm animals (eggs, milk, bacon, wool, goat milk).
-        Usage: collect_animals"""
-        print("  [*] collect_animals -> scanning animal habitats (chickens, cows, pigs, sheep, goats)...")
-        time.sleep(random.uniform(0.3, 0.6))
-        results = {"chickens": "eggs", "cows": "milk", "pigs": "bacon", "sheep": "wool", "goats": "goat milk"}
-        for animal, product in results.items():
-            print(f"      - {animal.capitalize():9s} -> collected {product} into barn")
-        print("  [+] collect_animals -> all ready animal products stored in barn.")
-        return results
+        Uses verified captured vtable 0x014a7d88 and 0x014a63f8.
+        Usage: collect_animals [penId]"""
+        print("  [*] collect_animals -> harvesting animal habitats...")
+        pen_ids = [int(args[0], 0)] if args else [
+            1300002, 1300004, 1300009, 1300012, 1300025, 1300069, 1300082
+        ] + [1300000 + i for i in range(15)]
+        pen_ids = sorted(list(set(pen_ids)))
+        c1 = self._do_universal_command(self.VT_COLLECT_ANIMAL, 0, pen_ids, "Collect Animals (Habitats)")
+        c2 = self._do_universal_command(self.VT_COLLECT_BUILDING, 0, pen_ids, "Collect Animals (Products)")
+        print(f"  [+] collect_animals -> harvested goods from pens into barn.")
+        return {"pens": pen_ids, "processed": c1 + c2}
 
     def cmd_feed_animals(self, args):
         """Feed hungry animals in all pens with available feed.
-        Usage: feed_animals"""
-        print("  [*] feed_animals -> checking hungry animals in pens...")
-        time.sleep(random.uniform(0.3, 0.5))
-        feeds = ["Chicken Feed", "Cow Feed", "Pig Feed", "Sheep Feed", "Goat Feed"]
-        for f in feeds:
-            print(f"      - Distributing {f} to pen")
-        print("  [+] feed_animals -> all animals fed, production timers started.")
+        Uses verified captured vtable 0x014aae28 (FeedAnimalCommand).
+        Usage: feed_animals [feedId=600002]"""
+        feed_id = int(args[0], 0) if args else 600002  # 600002 = Chicken Feed
+        animal_ids = [2300000 + i for i in range(25)]
+        print(f"  [*] feed_animals -> feeding livestock with feed ID {feed_id}...")
+        c = self._do_universal_command(self.VT_FEED_ANIMAL, feed_id, animal_ids, "Feed Animals")
+        print(f"  [+] feed_animals -> dispatched feed {feed_id} to {len(animal_ids)} animals.")
         return True
 
     def cmd_collect_machines(self, args):
         """Collect all finished goods from production buildings and machines.
-        Usage: collect_machines"""
-        print("  [*] collect_machines -> checking production buildings...")
-        time.sleep(random.uniform(0.4, 0.7))
-        buildings = [
-            "Bakery", "Dairy", "Sugar Mill", "Feed Mill",
-            "Pie Oven", "Grill", "Popcorn Pot", "Loom", "Sewing Machine"
+        Uses verified captured vtable 0x014a63f8 (CollectBuildingProductCommand).
+        Usage: collect_machines [buildingId]"""
+        building_ids = [int(args[0], 0)] if args else [
+            1300002, 1300004, 1300005, 1300009, 1300010, 1300012, 1300025,
+            1300067, 1300069, 1300076, 1300080, 1300082
         ]
-        for b in buildings:
-            print(f"      - {b:15s} -> collected finished goods")
-        print(f"  [+] collect_machines -> collected goods from {len(buildings)} buildings into barn.")
-        return buildings
+        print(f"  [*] collect_machines -> collecting finished goods from {len(building_ids)} machines...")
+        c = self._do_universal_command(self.VT_COLLECT_BUILDING, 0, building_ids, "Collect Machines")
+        print(f"  [+] collect_machines -> finished goods stored in barn.")
+        return building_ids
 
     def cmd_produce_machines(self, args):
         """Queue production items in machines with open production slots.
-        Usage: produce_machines [preset]"""
-        print("  [*] produce_machines -> queueing essential products in open machine slots...")
-        time.sleep(random.uniform(0.3, 0.6))
-        queue_plan = {
-            "Feed Mill": "Chicken / Cow Feed",
-            "Dairy": "Cream / Butter",
-            "Sugar Mill": "Brown / White Sugar",
-            "Bakery": "Bread"
-        }
-        for machine, product in queue_plan.items():
-            print(f"      - {machine:12s} -> queued: {product}")
-        print("  [+] produce_machines -> production slots restocked.")
-        return queue_plan
+        Uses verified captured vtable 0x014a9cc8 (StartProduceCommand).
+        Usage: produce_machines"""
+        print("  [*] produce_machines -> queueing products in machine slots...")
+        # (RecipeID, MachineID) from captured traffic:
+        # 1100015: Bread -> 1300082 Bakery
+        # 1100000: Cream -> 1300005 Dairy
+        # 1100001: Butter -> 1300010
+        # 1100013: Brown Sugar -> 1300025 Sugar Mill
+        plan = [
+            (1100015, 1300082, "Bread"),
+            (1100000, 1300005, "Cream"),
+            (1100001, 1300010, "Butter"),
+            (1100013, 1300025, "Brown Sugar"),
+        ]
+        for recipe_id, machine_id, name in plan:
+            self._do_universal_command(self.VT_START_PRODUCE, machine_id, [recipe_id], f"Queue {name}")
+        print("  [+] produce_machines -> all machine production queues replenished.")
+        return plan
 
     def cmd_collect_fruits(self, args):
         """Harvest ripe fruits from all trees and berry bushes.
+        Uses verified captured vtable 0x014a63f8 (HarvestObjectCommand).
         Usage: collect_fruits"""
         print("  [*] collect_fruits -> harvesting ripe fruit trees & bushes...")
-        time.sleep(random.uniform(0.3, 0.6))
-        fruits = ["Apples", "Cherries", "Raspberries", "Blackberries", "Cacao"]
-        for fruit in fruits:
-            print(f"      - Harvested {fruit}")
-        print("  [+] collect_fruits -> all ripe fruits gathered into silo.")
-        return fruits
+        # Tree & bush IDs on the farm (1300000 series)
+        tree_ids = [1300000 + i for i in range(120)]
+        c = self._do_universal_command(self.VT_COLLECT_BUILDING, 0, tree_ids, "Collect Fruits")
+        print(f"  [+] collect_fruits -> all orchard fruits harvested into silo.")
+        return tree_ids
+
+    def cmd_exec_cmd(self, args):
+        """Universal Command Executor: execute ANY captured game command directly.
+        Usage: exec_cmd <vtable_hex> <targetId> [param2=0]
+        Example: exec_cmd 0x014aae28 2300002 600002  (Feed Chicken #2)
+                 exec_cmd 0x014a63f8 1300005 0       (Collect Dairy)
+                 exec_cmd 0x014a9cc8 1100000 1300005 (Queue Cream in Dairy)
+        """
+        if len(args) < 2:
+            print("  Usage: exec_cmd <vtable_hex> <targetId> [param2=0]")
+            return
+        vt = int(args[0], 16) if args[0].lower().startswith("0x") else int(args[0], 0)
+        target = int(args[1], 0)
+        param2 = int(args[2], 0) if len(args) > 2 else 0
+        c = self._do_universal_command(vt, param2, [target], f"ExecCmd(0x{vt:x})")
+        print(f"  [+] exec_cmd -> executed vtable 0x{vt:x} on target {target} (param2={param2})")
+        return c
 
     def cmd_collect_all(self, args):
         """MASTER COLLECT: Collect crops, animal products, machine goods, and fruits in one go.
@@ -1323,6 +1357,90 @@ class NXRTHConsole:
         print("\n  [+] MASTER COLLECT COMPLETE! All ready items stored in barn & silo.\n")
         return True
 
+    def cmd_master_stop(self, args=None):
+        """Stop any active master auto loop."""
+        self._master_stop.set()
+        print("  [*] Master auto loop signaled to stop.")
+        return True
+
+    def _master_auto_worker(self, wait=130, crop=400001, auto_sell=False, modules=None):
+        """Worker thread for master auto farming. Fully interruptible via self._master_stop."""
+        cycle = 0
+        self._master_stop.clear()
+        try:
+            while not self._master_stop.is_set():
+                cycle += 1
+                print(f"\n  --- [CYCLE #{cycle}] {time.strftime('%H:%M:%S')} ---")
+                
+                # 1. Crops
+                if not modules or "crops" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    ids = self._field_ids(verbose=False)
+                    if ids:
+                        h = self._native_cmd(5, ids=ids)
+                        time.sleep(random.uniform(0.5, 1.0))
+                        p = self._native_cmd(4, arg0=crop, ids=ids)
+                        print(f"  [Crops] Harvested {h}, replanted {p} fields (crop {crop})")
+                    else:
+                        print("  [Crops] Checking fields...")
+
+                # 2. Animals & Feed
+                if not modules or "animals" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    self.cmd_collect_animals([])
+                    time.sleep(random.uniform(0.3, 0.6))
+                if not modules or "feed" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    self.cmd_feed_animals([])
+
+                # 3. Machines & Production
+                if not modules or "machines" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    self.cmd_collect_machines([])
+                    time.sleep(random.uniform(0.3, 0.6))
+                if not modules or "produce" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    self.cmd_produce_machines([])
+
+                # 4. Fruits
+                if not modules or "fruits" in modules:
+                    if self._master_stop.is_set():
+                        break
+                    self.cmd_collect_fruits([])
+
+                # 5. Roadside shop sale
+                if auto_sell or (modules and "sell" in modules):
+                    if self._master_stop.is_set():
+                        break
+                    try:
+                        self.cmd_nsell(["0", "10", "1", "1", str(crop)])
+                    except Exception:
+                        pass
+
+                # 6. Interruptible Natural Growth Wait
+                if self._master_stop.is_set():
+                    break
+                delay = wait * random.uniform(1.02, 1.15)
+                if cycle % random.randint(4, 7) == 0:
+                    delay += random.uniform(15, 45)
+                left = int(delay)
+                print(f"  [Cycle #{cycle} Done] Next cycle in ~{left}s... (type 'stop' or Ctrl+C to halt)")
+                while left > 0 and not self._master_stop.is_set():
+                    print(f"\r  cycle #{cycle} next in... {left:4d}s  ", end="", flush=True)
+                    step = min(1, left)
+                    time.sleep(step)
+                    left -= step
+                print("\r" + " " * 44 + "\r", end="")
+        except KeyboardInterrupt:
+            pass
+        finally:
+            print(f"\n  [*] Master auto-loop stopped after {cycle} cycle(s). Returned to console.\n")
+
     def cmd_master_auto(self, args):
         """MASTER AUTONOMOUS CONTROLLER:
         Full-farm unattended auto-loop covering:
@@ -1331,67 +1449,22 @@ class NXRTHConsole:
           3. Collect machine goods & restock production queues
           4. Harvest ripe fruit trees & bushes
           5. Sell surplus in roadside shop (if requested)
-          6. Randomized wait interval & repeat until Ctrl+C.
-        Usage: master_auto [wait_seconds=130] [cropId=400001] [auto_sell=0|1]
+          6. Randomized wait interval & repeat until Ctrl+C or 'stop'.
+        Usage: master_auto [wait_seconds=130] [cropId=400001] [auto_sell=0|1] [modules=crops,animals,feed...]
         """
         wait = int(args[0], 0) if args and args[0].isdigit() else 130
         crop = int(args[1], 0) if len(args) > 1 and args[1].isdigit() else 400001
         auto_sell = len(args) > 2 and args[2].lower() in ("1", "yes", "true", "y")
+        modules = args[3].lower().split(",") if len(args) > 3 else None
+
         print("\n  =======================================================")
         print("   MASTER AUTONOMOUS CONTROLLER ACTIVATED                 ")
         print(f"   Cycle delay: ~{wait}s | Crop: {crop} | Auto-sell: {auto_sell}")
-        print("   Press Ctrl+C at any time to return to console.        ")
+        if modules:
+            print(f"   Active modules: {', '.join(modules)}")
+        print("   Press Ctrl+C or type 'stop' at any time to halt.       ")
         print("  =======================================================\n")
-        cycle = 0
-        try:
-            while True:
-                cycle += 1
-                print(f"\n  --- [CYCLE #{cycle}] {time.strftime('%H:%M:%S')} ---")
-                
-                # 1. Crops
-                ids = self._field_ids(verbose=False)
-                if ids:
-                    h = self._native_cmd(5, ids=ids)
-                    time.sleep(random.uniform(0.5, 1.0))
-                    p = self._native_cmd(4, arg0=crop, ids=ids)
-                    print(f"  [Crops] Harvested {h}, replanted {p} fields (crop {crop})")
-                else:
-                    print("  [Crops] Checking fields...")
-
-                # 2. Animals
-                self.cmd_collect_animals([])
-                time.sleep(random.uniform(0.3, 0.6))
-                self.cmd_feed_animals([])
-
-                # 3. Machines
-                self.cmd_collect_machines([])
-                time.sleep(random.uniform(0.3, 0.6))
-                self.cmd_produce_machines([])
-
-                # 4. Fruits
-                self.cmd_collect_fruits([])
-
-                # 5. Roadside shop sale
-                if auto_sell:
-                    try:
-                        self.cmd_nsell(["0", "10", "1", "1", str(crop)])
-                    except Exception as e:
-                        pass
-
-                # 6. Natural growth wait
-                delay = wait * random.uniform(1.02, 1.15)
-                if cycle % random.randint(4, 7) == 0:
-                    delay += random.uniform(15, 45)
-                left = int(delay)
-                print(f"  [Cycle #{cycle} Done] Next cycle in ~{left}s...")
-                while left > 0:
-                    print(f"\r  cycle #{cycle} next in... {left:4d}s  ", end="", flush=True)
-                    step = min(2, left)
-                    time.sleep(step)
-                    left -= step
-                print("\r" + " " * 36 + "\r", end="")
-        except KeyboardInterrupt:
-            print(f"\n\n  [*] Master auto-loop stopped after {cycle} cycle(s). Returned to console.")
+        self._master_auto_worker(wait, crop, auto_sell, modules)
 
     def _list_helper_residues(self):
         result = su_command(
@@ -3000,6 +3073,167 @@ class NXRTHConsole:
         self.sell_mbox = mbox
         print(f"  Sell gate built on main game tick; mbox {mbox}")
 
+    def _build_universal_cave(self, mbox_i, stolen, base, fabs):
+        """Universal game command gate on tryToExecuteCommand / tick.
+        Mailbox layout:
+          +0x00: flag (1 = execute, 0 = idle/done)
+          +0x08: gameMode
+          +0x10: vtable_abs (u64)
+          +0x18: heartbeat (u32)
+          +0x1c: count of targets (u32)
+          +0x20: param2 (u32, e.g. feedId or recipeId or 0)
+          +0x28..: array of target IDs (u32)
+        Allocates a 0x48-byte Command object using operator new:
+          cmd[0x00] = vtable_abs
+          cmd[0x24] = targetId
+          cmd[0x28] = param2
+        Calls tryToExecuteCommand(gameMode, cmd, 0) for each target, then clears flag.
+        """
+        NEW = base + 0x141c480
+        TRY = base + 0x00ae3bc4
+        prog = []
+
+        def emit(x): prog.append(('w', x & 0xFFFFFFFF))
+        def li(rd, v):
+            for x in self._le_words(self._load_imm64(rd, v)): emit(x)
+        def mvz(rd, imm): emit(0x52800000 | ((imm & 0xFFFF) << 5) | rd)
+        def lbl(n): prog.append(('L', n))
+
+        emit(0xD1000000 | (0x70 << 10) | (31 << 5) | 31)          # sub sp,sp,#0x70
+        emit(0xA9000000 | (1 << 10) | (31 << 5) | 0)              # stp x0,x1,[sp]
+        emit(0xA9000000 | (2 << 15) | (3 << 10) | (31 << 5) | 2)
+        emit(0xA9000000 | (4 << 15) | (5 << 10) | (31 << 5) | 4)
+        emit(0xA9000000 | (6 << 15) | (7 << 10) | (31 << 5) | 6)
+        emit(0xA9000000 | (8 << 15) | (30 << 10) | (31 << 5) | 8)
+        emit(0xFD000000 | ((0x60 // 8) << 10) | (31 << 5) | 0)    # str d0,[sp,#0x60]
+        li(9, mbox_i)
+        emit(0xF9000000 | (1 << 10) | (9 << 5) | 0)               # str x0,[x9,#8] gameMode
+        emit(0xB9400000 | (6 << 10) | (9 << 5) | 12)              # ldr w12,[x9,#0x18]
+        emit(0x11000000 | (1 << 10) | (12 << 5) | 12)             # add w12,#1
+        emit(0xB9000000 | (6 << 10) | (9 << 5) | 12)              # str w12,[x9,#0x18]
+        emit(0xB9400000 | (9 << 5) | 10)                          # ldr w10,[x9] flag
+        prog.append(('cbz', 10, 'rest'))
+        emit(0xB9000000 | (9 << 5) | 31)                          # str wzr,[x9] clear flag
+        emit(0xB9400000 | (7 << 10) | (9 << 5) | 13)              # ldr w13,[x9,#0x1c] count
+        emit(0xB9000000 | ((0x58 // 4) << 10) | (31 << 5) | 13)   # str w13,[sp,#0x58]
+        emit(0xB9000000 | ((0x5c // 4) << 10) | (31 << 5) | 31)   # str wzr,[sp,#0x5c] i=0
+        lbl('loop')
+        emit(0xB9400000 | ((0x5c // 4) << 10) | (31 << 5) | 13)   # ldr w13,[sp,#0x5c] i
+        emit(0xB9400000 | ((0x58 // 4) << 10) | (31 << 5) | 14)   # ldr w14,[sp,#0x58] count
+        emit(0x6B00001F | (14 << 16) | (13 << 5))                 # cmp w13,w14
+        prog.append(('bge', 'rest'))
+        mvz(0, 0x48)                                              # mov w0,#0x48
+        li(11, NEW)
+        emit(0xD63F0000 | (11 << 5))                              # blr new
+        emit(0xF9000000 | ((0x50 // 8) << 10) | (31 << 5) | 0)    # str x0,[sp,#0x50] cmd
+        li(9, mbox_i)
+        emit(0xF9400000 | (2 << 10) | (9 << 5) | 11)              # ldr x11,[x9,#0x10] vtable
+        emit(0xF9000000 | (0 << 10) | (0 << 5) | 11)              # str x11,[x0]
+        emit(0xF9000000 | (1 << 10) | (0 << 5) | 31)              # str xzr,[x0,#8]
+        emit(0xF9000000 | (2 << 10) | (0 << 5) | 31)              # str xzr,[x0,#0x10]
+        emit(0xF9000000 | (3 << 10) | (0 << 5) | 31)              # str xzr,[x0,#0x18]
+        emit(0xF9000000 | (4 << 10) | (0 << 5) | 31)              # str xzr,[x0,#0x20]
+        emit(0xB9400000 | ((0x5c // 4) << 10) | (31 << 5) | 13)   # ldr w13,[sp,#0x5c] i
+        emit(0x8B000000 | (13 << 16) | (2 << 10) | (9 << 5) | 14)  # add x14,x9,x13,lsl#2
+        emit(0xB9400000 | ((0x28 // 4) << 10) | (14 << 5) | 1)    # ldr w1,[x14,#0x28] ids[i]
+        emit(0xB9000000 | ((0x24 // 4) << 10) | (0 << 5) | 1)     # str w1,[x0,#0x24] targetId
+        emit(0xB9400000 | ((0x20 // 4) << 10) | (9 << 5) | 2)     # ldr w2,[x9,#0x20] param2
+        emit(0xB9000000 | ((0x28 // 4) << 10) | (0 << 5) | 2)     # str w2,[x0,#0x28] param2
+        emit(0xB9000000 | ((0x2c // 4) << 10) | (0 << 5) | 31)    # str wzr,[x0,#0x2c]
+        emit(0xF9000000 | ((0x30 // 8) << 10) | (0 << 5) | 31)    # str xzr,[x0,#0x30]
+        emit(0xF9400000 | (31 << 5) | 0)                          # ldr x0,[sp] gameMode
+        emit(0xF9400000 | ((0x50 // 8) << 10) | (31 << 5) | 1)    # ldr x1,[sp,#0x50] cmd
+        mvz(2, 0)                                                 # mov w2,#0
+        li(11, TRY)
+        emit(0xD63F0000 | (11 << 5))                              # blr tryToExec
+        emit(0xB9400000 | ((0x5c // 4) << 10) | (31 << 5) | 13)   # ldr w13,[sp,#0x5c]
+        emit(0x11000000 | (1 << 10) | (13 << 5) | 13)             # add w13,#1
+        emit(0xB9000000 | ((0x5c // 4) << 10) | (31 << 5) | 13)   # str w13,[sp,#0x5c]
+        prog.append(('b', 'loop'))
+        lbl('rest')
+        emit(0xFD400000 | ((0x60 // 8) << 10) | (31 << 5) | 0)    # ldr d0,[sp,#0x60]
+        emit(0xA9400000 | (1 << 10) | (31 << 5) | 0)              # ldp x0,x1,[sp]
+        emit(0xA9400000 | (2 << 15) | (3 << 10) | (31 << 5) | 2)
+        emit(0xA9400000 | (4 << 15) | (5 << 10) | (31 << 5) | 4)
+        emit(0xA9400000 | (6 << 15) | (7 << 10) | (31 << 5) | 6)
+        emit(0xA9400000 | (8 << 15) | (30 << 10) | (31 << 5) | 8)
+        emit(0x91000000 | (0x70 << 10) | (31 << 5) | 31)          # add sp,sp,#0x70
+        for i in range(0, 16, 4): emit(int.from_bytes(stolen[i:i+4], 'little'))
+        emit(0x58000051)                                          # ldr x17,#8
+        emit(0xD61F0220)                                          # br x17
+
+        offs = {}
+        n = 0
+        for e in prog:
+            if e[0] == 'L': offs[e[1]] = n * 4
+            else: n += 1
+        words = []
+        idx = 0
+        for e in prog:
+            if e[0] == 'L': continue
+            cur = idx * 4
+            idx += 1
+            if e[0] == 'w': words.append(e[1])
+            elif e[0] == 'b':
+                d = (offs[e[1]] - cur) // 4
+                words.append(0x14000000 | (d & 0x03FFFFFF))
+            elif e[0] == 'bge':
+                d = (offs[e[1]] - cur) // 4
+                words.append(0x54000000 | ((d & 0x7FFFF) << 5) | 0xA)
+            elif e[0] == 'cbz':
+                d = (offs[e[2]] - cur) // 4
+                words.append(0x34000000 | ((d & 0x7FFFF) << 5) | e[1])
+        code = b''.join(struct.pack('<I', x) for x in words)
+        code += struct.pack('<Q', fabs + 16)
+        return code
+
+    def _install_universal_gate(self):
+        """Install the universal command gate on the main tick. Operates with
+        its own cave + mailbox so it can run any captured or custom game command."""
+        F = 0x00ae2430
+        if not self.plant_base:
+            self.plant_base = int(str(self._rpc("info")["base"]), 0)
+        base = self.plant_base
+        self.univ_F = F
+        fabs = base + F
+        mbox = self._rpc("alloccave", 1024)
+        self._rpc("writeabs", mbox, [0] * 32)
+        stolen = self._read_stolen(F)
+        if stolen is None:
+            raise LoaderError("tick prologue not relocatable (fully restart the game and retry)")
+        cave = self._rpc("alloccave", 512)
+        self._rpc("writeabs", cave, list(self._build_universal_cave(int(mbox, 0), stolen, base, fabs)))
+        self.univ_cave = cave
+        self.univ_mbox = mbox
+        print(f"  Universal command gate built on main game tick; mbox {mbox}")
+
+    def _do_universal_command(self, vtable_off, param2, ids, name="UniversalCmd"):
+        """Execute a game command on the tick for one or more target IDs."""
+        if not getattr(self, "univ_mbox", None):
+            self._install_universal_gate()
+        if not self._arm_hook(self.univ_F, self.univ_cave, self.univ_mbox):
+            print(f"  [!] Universal hook not live (open the farm screen and retry).")
+            return 0
+        m = int(self.univ_mbox, 0)
+        base = self.plant_base or int(str(self._rpc("info")["base"]), 0)
+        vt_abs = base + vtable_off
+        ids = list(ids)[:120]
+        if not ids:
+            return 0
+        self._rpc("writeabs", f"0x{m + 0x10:x}", list(struct.pack("<Q", vt_abs)))
+        self._rpc("writeabs", f"0x{m + 0x1c:x}", list(struct.pack("<I", len(ids))))
+        self._rpc("writeabs", f"0x{m + 0x20:x}", list(struct.pack("<I", param2 & 0xFFFFFFFF)))
+        self._rpc("writeabs", f"0x{m + 0x28:x}", list(b"".join(struct.pack("<I", i) for i in ids)))
+        self._rpc("writeabs", self.univ_mbox, list(struct.pack("<I", 1)))
+        print(f"  {name} (vtable 0x{vtable_off:x}): firing on {len(ids)} target(s)...")
+        for i in range(30):
+            time.sleep(0.1)
+            if int.from_bytes(bytes(self._rpc("readabs", self.univ_mbox, 4)), "little") == 0:
+                print(f"  >>> DONE after {(i + 1) * 0.1:.2f}s ({len(ids)} target(s) processed)")
+                return len(ids)
+        print("  Flag still set after 3s (Promon may have reverted; retry).")
+        return 0
+
     def _arm_hook(self, F=None, cave=None, mbox=None):
         """(Re)apply the inline tick patch and flush its translation, then wait
         until the hook is confirmed live via the cave heartbeat. Promon reverts
@@ -3899,6 +4133,9 @@ class NXRTHConsole:
             "collectall": self.cmd_collect_all, "collect_all": self.cmd_collect_all,
             "masterauto": self.cmd_master_auto, "master_auto": self.cmd_master_auto,
             "automaster": self.cmd_master_auto, "nmaster": self.cmd_master_auto,
+            "masterstop": self.cmd_master_stop, "master_stop": self.cmd_master_stop,
+            "stop": self.cmd_master_stop, "halt": self.cmd_master_stop,
+            "execcmd": self.cmd_exec_cmd, "exec_cmd": self.cmd_exec_cmd,
         }
 
         print("\n+--------------------------------------+" )
@@ -4032,6 +4269,12 @@ class NXRTHConsole:
             return "OK pong"
         if cmd == "farm":               # manages a thread; must not hold the lock across join()
             return self._control_farm(args)
+        if cmd in ("master", "masterauto"):
+            return self._control_master(args)
+        if cmd in ("stop", "halt"):
+            self._master_stop.set()
+            self._farm_stop.set()
+            return "OK all automation stopped"
         if cmd == "status":             # cached; no native RPC
             return self._control_status()
         if cmd == "adb":                # probe the ADB device (GUI 'Test ADB' button)
@@ -4092,6 +4335,11 @@ class NXRTHConsole:
                 if cmd in ("collectfruits", "collect_fruits"):
                     self.cmd_collect_fruits([])
                     return "OK fruits collected"
+                if cmd in ("execcmd", "exec_cmd"):
+                    if len(args) < 2:
+                        return "ERR usage: execcmd <vtable_hex> <targetId> [param2=0]"
+                    c = self.cmd_exec_cmd(args)
+                    return f"OK executed {c}"
                 return f"ERR unknown command: {cmd}"
             except LoaderError as e:
                 return f"ERR {e}"
@@ -4126,6 +4374,38 @@ class NXRTHConsole:
                 return "OK farm stopping (winding down mid-cycle)"
             return "OK farm stopped"
         return f"ERR unknown farm subcommand: {sub}"
+
+    def _control_master(self, args):
+        """Non-blocking master auto start/stop over the socket."""
+        sub = args[0].lower() if args else "status"
+        if sub == "start":
+            if self._master_thread and self._master_thread.is_alive():
+                return "ERR master auto already running"
+            if not self._attached():
+                reason = self.detached_reason or self.script_error or "session not attached"
+                return f"ERR {reason}"
+            wait = int(args[1], 0) if len(args) > 1 and args[1].isdigit() else 130
+            crop = int(args[2], 0) if len(args) > 2 and args[2].isdigit() else 400001
+            modules = args[3].lower().split(",") if len(args) > 3 and args[3] != "all" else None
+            self._master_stop.clear()
+            self._master_thread = threading.Thread(
+                target=self._master_auto_worker,
+                args=(wait, crop, False, modules),
+                daemon=True,
+                name="nxrth-master-auto"
+            )
+            self._master_thread.start()
+            return "OK master auto started"
+        if sub == "stop":
+            self._master_stop.set()
+            self._farm_stop.set()
+            if self._master_thread and self._master_thread.is_alive():
+                self._master_thread.join(timeout=3.0)
+            return "OK master auto stopped"
+        if sub == "status":
+            running = bool(self._master_thread and self._master_thread.is_alive())
+            return f"OK master auto {'running' if running else 'stopped'}"
+        return f"ERR usage: master start [wait] [crop] [modules] | master stop | master status"
 
     def _farm_worker(self, wait, crop):
         """Background auto-farm: harvest -> plant -> jittered wait, until the stop

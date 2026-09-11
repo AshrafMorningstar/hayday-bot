@@ -34,6 +34,7 @@ class TestFarmCommands(unittest.TestCase):
         self.console.detached_reason = None
         self.console.script_error = None
         self.console._attached = MagicMock(return_value=True)
+        self.console._do_universal_command = MagicMock(return_value=5)
 
     def test_01_collect_crops(self):
         """Test cmd_collect_crops with fields present and empty."""
@@ -56,17 +57,11 @@ class TestFarmCommands(unittest.TestCase):
         print("\n--- Testing: collect_animals ---")
         res = self.console.cmd_collect_animals([])
         self.assertIsInstance(res, dict)
-        self.assertIn("chickens", res)
-        self.assertEqual(res["chickens"], "eggs")
-        self.assertIn("cows", res)
-        self.assertEqual(res["cows"], "milk")
-        self.assertIn("pigs", res)
-        self.assertEqual(res["pigs"], "bacon")
-        self.assertIn("sheep", res)
-        self.assertEqual(res["sheep"], "wool")
-        self.assertIn("goats", res)
-        self.assertEqual(res["goats"], "goat milk")
-        print("  [PASS] collect_animals properly returns all animal habitats and yields.")
+        self.assertIn("pens", res)
+        self.assertIn("processed", res)
+        self.assertGreater(len(res["pens"]), 0)
+        self.assertIn(1300002, res["pens"])
+        print(f"  [PASS] collect_animals processed {res['processed']} actions across {len(res['pens'])} pens.")
 
     def test_03_feed_animals(self):
         """Test cmd_feed_animals distributes feed to pens."""
@@ -80,39 +75,34 @@ class TestFarmCommands(unittest.TestCase):
         print("\n--- Testing: collect_machines ---")
         res = self.console.cmd_collect_machines([])
         self.assertIsInstance(res, list)
-        self.assertIn("Bakery", res)
-        self.assertIn("Dairy", res)
-        self.assertIn("Sugar Mill", res)
-        self.assertIn("Feed Mill", res)
-        self.assertIn("Pie Oven", res)
-        self.assertIn("Grill", res)
-        self.assertIn("Popcorn Pot", res)
-        self.assertIn("Loom", res)
-        self.assertIn("Sewing Machine", res)
+        self.assertIn(1300082, res)  # Bakery
+        self.assertIn(1300005, res)  # Dairy
+        self.assertIn(1300010, res)  # Feed Mill
+        self.assertIn(1300025, res)  # Sugar Mill
         print(f"  [PASS] collect_machines successfully cleared {len(res)} production machines.")
 
     def test_05_produce_machines(self):
         """Test cmd_produce_machines queues production in machines."""
         print("\n--- Testing: produce_machines ---")
         res = self.console.cmd_produce_machines([])
-        self.assertIsInstance(res, dict)
-        self.assertIn("Feed Mill", res)
-        self.assertIn("Dairy", res)
-        self.assertIn("Sugar Mill", res)
-        self.assertIn("Bakery", res)
-        print("  [PASS] produce_machines restocked all designated production slots.")
+        self.assertIsInstance(res, list)
+        # res contains tuples of (recipe_id, machine_id, name)
+        recipe_names = [item[2] for item in res]
+        self.assertIn("Bread", recipe_names)
+        self.assertIn("Cream", recipe_names)
+        self.assertIn("Butter", recipe_names)
+        self.assertIn("Brown Sugar", recipe_names)
+        print(f"  [PASS] produce_machines restocked {len(res)} designated production slots.")
 
     def test_06_collect_fruits(self):
         """Test cmd_collect_fruits harvests orchard and bushes."""
         print("\n--- Testing: collect_fruits ---")
         res = self.console.cmd_collect_fruits([])
         self.assertIsInstance(res, list)
-        self.assertIn("Apples", res)
-        self.assertIn("Cherries", res)
-        self.assertIn("Raspberries", res)
-        self.assertIn("Blackberries", res)
-        self.assertIn("Cacao", res)
-        print(f"  [PASS] collect_fruits gathered all {len(res)} fruit types into silo.")
+        self.assertGreater(len(res), 0)
+        self.assertIn(1300000, res)
+        self.assertIn(1300082, res)
+        print(f"  [PASS] collect_fruits gathered fruits across {len(res)} trees and bushes into silo.")
 
     def test_07_collect_all(self):
         """Test cmd_collect_all (Master Collect) runs all 4 collection sectors."""
@@ -215,6 +205,26 @@ class TestFarmCommands(unittest.TestCase):
             self.assertFalse(args_auto.master_auto)
 
         print("  [PASS] CLI argument parsing for --master-auto and options validated.")
+
+    def test_11_universal_cave_and_exec_cmd(self):
+        """Test _build_universal_cave bytecode generation and cmd_exec_cmd."""
+        print("\n--- Testing: Universal Command Cave & exec_cmd ---")
+        stolen = b"\x1f\x20\x03\xd5" * 4
+        cave = self.console._build_universal_cave(0x76380000, stolen, 0x05040000, 0x05040000 + 0xae2430)
+        self.assertGreater(len(cave), 100)
+        self.assertEqual(len(cave) % 4, 0)
+
+        # Test cmd_exec_cmd
+        res = self.console.cmd_exec_cmd(["0x014aae28", "2300002", "600002"])
+        self.assertEqual(res, 5)
+        self.console._do_universal_command.assert_called_with(
+            0x014aae28, 600002, [2300002], "ExecCmd(0x14aae28)"
+        )
+
+        # Test control socket execcmd
+        sock_res = self.console._control_result("execcmd 0x014aae28 2300002 600002")
+        self.assertEqual(sock_res, "OK executed 5")
+        print("  [PASS] Universal command cave bytecode and exec_cmd dispatch verified.")
 
 
 if __name__ == "__main__":

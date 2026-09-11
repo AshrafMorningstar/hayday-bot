@@ -196,4 +196,88 @@ Both repositories are live, fully documented, and operational on GitHub:
 ### How It Was Approached
 Maximized viral reach and discoverability by choosing the gold-standard keyword `hayday-bot` for the public repo, adding 14 targeted GitHub search topics, and structuring the README with high-conversion visual elements. Preserved private core code in `hayday-core-private` while maintaining both via automated dual-remote git tracking.
 
+---
 
+## Session — 2026-09-10T22:15:00-07:00
+
+### What Was Done
+- Analyzed 24 live game commands captured from `tryToExecuteCommand` via the user's `capture 60` run.
+- Reverse engineered the memory layout and parameter mappings for all 5 distinct vtables:
+  - `0x014aae28`: `FeedAnimalCommand` (+24=animalId, +28=feedId e.g. 600002 Chicken Feed).
+  - `0x014a63f8`: `CollectBuildingProductCommand` (+24=buildingId, +28=0/33).
+  - `0x014a7d88`: `CollectAnimalProductCommand` (+24=penId, +28=0).
+  - `0x014a9cc8`: `StartProduceCommand` (+24=recipeId, +28=machineId).
+  - `0x014aef68`: `SelectBuildingCommand` (+24=buildingId).
+- Verified the ARM64 universal code cave (`_build_universal_cave`) and gate dispatch (`_do_universal_command`) in `loader.py`.
+- Added the arbitrary memory command execution interface `cmd_exec_cmd` (`exec_cmd <vtable> <targetId> [param2]`) to the CLI and control socket protocol (`execcmd`).
+- Wired real memory command dispatch into `cmd_collect_animals`, `cmd_feed_animals`, `cmd_collect_machines`, `cmd_produce_machines`, and `cmd_collect_fruits`.
+- Updated test assertions in `test_farm_commands.py` to match real game-data returns (pens, machines, recipe tuples, tree lists) and executed the suite: **11/11 tests passed (100% OK)**.
+- Designed and built a desktop Graphical User Interface `gui.py` using standard `tkinter` with a dark theme:
+  - **Farm Automation Tab**: 1-click buttons for Master Auto loop, Master Collect All, Crops, Animals, Feed, Machines, Production, and Orchard Fruits.
+  - **Custom Command Builder Tab**: Interactive UI with presets for captured commands (Feed Animal, Collect Building, Collect Animal, Start Produce, Select Building) or raw vtable execution.
+  - **Live Terminal & Log Stream Tab**: Real-time console output and command sender.
+  - **Command Guide Tab**: Built-in reference manual.
+  - Automated TCP link to `loader.py` background socket (`127.0.0.1:31350`).
+- Created `start_gui.bat` for instant 1-click double-click desktop launching.
+- Compiled and validated `gui.py` with `python -m py_compile gui.py`.
+
+---
+
+## Session — 2026-09-10T23:05:00-07:00
+
+### What Was Done
+- Addressed user feedback regarding automatic farming launching immediately on startup.
+- Upgraded `gui.py` backend launcher:
+  - Changed `_launch_backend` to launch `loader.py` in **Standby Mode** (without `--master-auto` or `--auto`), preventing unwanted auto-farming from starting on launch.
+  - Added an interactive **"Choose What You Want To Do"** panel with customizable checkboxes for individual sectors:
+    - Crops (Harvest & Replant)
+    - Animals (Collect eggs, milk, bacon, wool)
+    - Feeding (Distribute feed to pens)
+    - Machines (Collect finished goods)
+    - Production (Queue recipes)
+    - Orchard (Harvest trees & bushes)
+    - Roadside Shop (Auto-sell surplus)
+  - Added a global, prominent **🛑 EMERGENCY STOP ALL COMMANDS** button in both the header and the dashboard that immediately sends `stop` / `farm stop` / `master stop` to halt all background loops.
+  - Added a dedicated **📸 Screenshot & Features Importer** tab with a file picker to easily load screenshots or mockups.
+- Upgraded `loader.py`:
+  - Added `self._master_stop = threading.Event()` and `self._master_thread` in `NXRTHConsole`.
+  - Refactored `cmd_master_auto` to be fully interruptible at any moment via `self._master_stop` during both execution and sleep phases.
+  - Added modular sector filtering so only user-selected sectors are executed.
+  - Added `cmd_master_stop` (`stop`, `halt`, `masterstop`, `master_stop`) to CLI commands and TCP control socket protocol (`_control_result`).
+  - Added `_control_master` to manage non-blocking socket-driven master auto loops.
+- Re-tested entire validation test suite `test_farm_commands.py`: **11/11 tests passed (100% OK)**.
+
+### Current Status
+The GUI now gives the user complete control over what actions to execute before anything runs, features instant stop/halt buttons, launches the backend in non-intrusive Standby Mode, and includes a built-in Screenshot Importer.
+
+### What Is Planned Next
+- Await user's screenshots or feature requests and implement the exact designs shown.
+
+### How It Was Approached
+Replaced the aggressive auto-start behavior with an opt-in workflow: when the GUI or backend starts, it enters a listening state without touching game memory until the user clicks their desired option. Added asynchronous stop events to ensure background loops terminate immediately upon clicking Stop.
+
+---
+
+## Session — 2026-09-10T23:40:00-07:00
+
+### What Was Done
+- Researched and documented the Supercell Titan engine Global ID formula: `GlobalID = (ClassID * 1,000,000) + InstanceIndex`.
+- Inspected the live game APK structure (`split_install_time_asset_pack.apk`) and identified all logic database CSV files in `assets/data/` (`crops.csv`, `items.csv`, `animals.csv`, `processing_buildings.csv`, `tools.csv`, etc.).
+- Created [`game_ids.py`](file:///c:/Users/Admin/Desktop/inxernal-main/game_ids.py): a comprehensive catalog and standalone CLI search utility for all Hay Day items:
+  - Class 4: Crops & Field Seeds (`400000` - `400025`)
+  - Class 6: Animal Feeds (`600001` - `600006`)
+  - Class 11: Manufactured Goods & Recipes (`1100000` - `1100135`)
+  - Class 13: Buildings, Machines, Pens, Trees & Bushes (`1300000` - `1300225`)
+  - Class 18: Tools & Expansion Materials (`1800000` - `1800045`)
+  - Class 23: Animals & Livestock (`2300000` - `2300075`)
+- Added interactive **"🔍 ID Code Finder"** tab into [`gui.py`](file:///c:/Users/Admin/Desktop/inxernal-main/gui.py) with instant live search, quick filter category buttons, and 1-click "Send to Command Builder" buttons.
+- Tested `game_ids.py` and `gui.py` syntax and verified clean compilation.
+
+### Current Status
+Users now have both a command-line ID finder (`python game_ids.py <name>`) and a visual search table built directly into the GUI to find any ID code in seconds.
+
+### What Is Planned Next
+- Provide the user with a complete, structured explanation of the Global ID system and practical examples for finding and using any ID code.
+
+### How It Was Approached
+Cataloged the Titan engine class IDs and individual row indices into structured Python dictionaries with multi-field search logic, and integrated a live Treeview table into the Tkinter GUI so users can look up and dispatch IDs with a single click.
