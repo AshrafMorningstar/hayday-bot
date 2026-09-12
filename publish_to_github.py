@@ -20,12 +20,17 @@ import shutil
 import argparse
 from pathlib import Path
 
-# Fix Windows console ANSI
+# Fix Windows console ANSI and UTF-8 encoding
 if sys.platform == "win32":
     try:
         import ctypes
         kernel32 = ctypes.windll.kernel32
         kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+    except Exception:
+        pass
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
     except Exception:
         pass
 
@@ -67,6 +72,8 @@ def run_cmd(cmd, cwd=None, check=True, capture=True):
         cwd=cwd,
         capture_output=capture,
         text=True,
+        encoding='utf-8',
+        errors='replace',
         shell=isinstance(cmd, str)
     )
     if check and res.returncode != 0:
